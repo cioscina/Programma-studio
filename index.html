@@ -1,0 +1,653 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Programma Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@300;400;500;600&display=swap">
+<style>
+/* Layout: two tabs (Dati / Piano). Dati = stacked form panels; Piano = pastel day cards in a 2-col grid, like a printed sheet. */
+:root{
+  --bg:#f3f4fa; --surface:#ffffff; --soft:#eef0f9; --fg:#1d2142; --muted:#5d6283; --line:#dde0ee;
+  --accent:#3644b8; --accent-ink:#ffffff; --on-tag:#1d2142; --warn:#fff2d6; --warn-ink:#6b4800;
+  --display:"Fredoka","Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Lexend","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13152a; --surface:#1c1f38; --soft:#242846; --fg:#e8eaf8; --muted:#a3a8c8; --line:#30355a;
+  --accent:#9ba7ff; --accent-ink:#13152a; --warn:#3a2f12; --warn-ink:#ffd98a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13152a; --surface:#1c1f38; --soft:#242846; --fg:#e8eaf8; --muted:#a3a8c8; --line:#30355a;
+  --accent:#9ba7ff; --accent-ink:#13152a; --warn:#3a2f12; --warn-ink:#ffd98a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{font-family:var(--display);font-weight:700;font-size:1.6rem;letter-spacing:.01em;margin:0}
+.brand small{display:block;font-family:var(--body);font-weight:400;font-size:.85rem;color:var(--muted);letter-spacing:0}
+.tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:999px}
+.tabs button{border:0;background:transparent;color:var(--muted);font:500 .95rem var(--body);padding:8px 18px;border-radius:999px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1.5px solid var(--line);background:var(--surface);padding:7px 14px;border-radius:10px;cursor:pointer;font-weight:500;font-size:.9rem}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{border-style:dashed;color:var(--muted)}
+.x{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:4px 6px;border-radius:6px}
+.x:hover{background:var(--soft);color:var(--fg)}
+.x.armed{color:#c0392b;font-size:.8rem;font-weight:600}
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--warn);color:var(--warn-ink);padding:10px 14px;border-radius:12px;margin-bottom:16px;font-size:.9rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+.panel h2{font-family:var(--display);font-weight:600;font-size:1.2rem;margin:0 0 4px}
+.panel .hint{color:var(--muted);font-size:.85rem;margin:0 0 14px;max-width:70ch}
+.step{display:inline-grid;place-items:center;width:1.6em;height:1.6em;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:.85rem;margin-right:6px;vertical-align:2px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--muted);font-weight:500;min-width:0}
+input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.92rem;width:100%;min-width:0}
+textarea{resize:vertical}
+input[type=color]{width:34px;height:34px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
+.grid-set{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.list{display:flex;flex-direction:column;gap:8px}
+.subj{display:flex;gap:8px;align-items:center}
+.subj input[type=text]{max-width:280px}
+.subjs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-bottom:10px}
+.task{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;align-items:end;background:var(--soft);border-radius:12px;padding:12px;position:relative}
+.task .del{position:absolute;top:4px;right:4px}
+.task .wide{grid-column:span 2}
+.chk{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--fg);padding-bottom:6px}
+.week{display:flex;flex-direction:column;gap:6px}
+.wday{display:grid;grid-template-columns:7.5em 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
+.wday:last-child{border-bottom:0}
+.wday b{font-weight:500}
+.slots{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.slot{display:flex;align-items:center;gap:4px;background:var(--soft);border-radius:8px;padding:3px 4px 3px 6px}
+.slot input{width:6.6em;padding:3px 4px}
+.none{color:var(--muted);font-size:.85rem}
+.commit{display:grid;grid-template-columns:minmax(120px,1fr) auto 7em 7em auto 34px auto;gap:8px;align-items:end;background:var(--soft);border-radius:12px;padding:10px}
+.dtog{display:flex;flex-wrap:wrap;gap:3px}
+.dbtn{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:7px;padding:5px 7px;font-size:.8rem;cursor:pointer;min-width:2.6em}
+.dbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.offs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;gap:4px;align-items:center;background:var(--soft);border-radius:999px;padding:3px 4px 3px 12px;font-size:.88rem}
+.row-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;margin-bottom:14px}
+.bar .msg{margin-right:auto;color:var(--muted);font-size:.88rem}
+.warns{background:var(--warn);color:var(--warn-ink);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:.9rem}
+.warns ul{margin:4px 0 0;padding-left:18px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:.9rem;z-index:20}
+@media (max-width:640px){
+  .commit{grid-template-columns:1fr 1fr}
+  .commit > .f:nth-child(1), .commit > .f:nth-child(2){grid-column:1 / -1}
+  .commit .chk{grid-column:span 1}
+  .task .wide{grid-column:auto}
+  .wday{grid-template-columns:1fr}
+}
+@media print{.top,.bar,#warns,#view-dati,.toast{display:none!important}body{background:#fff}.wrap{padding:0;max-width:none}#view-piano{display:block!important}.p-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style id="plancss"></style>
+
+<div class="wrap">
+  <div class="top">
+    <h1 class="brand">Programma Studio<small>Inserisci materie, verifiche e tempo libero: il piano si crea da solo.</small></h1>
+    <div class="tabs" role="tablist">
+      <button id="tab-dati" role="tab" aria-selected="true" data-tab="dati">Dati</button>
+      <button id="tab-piano" role="tab" aria-selected="false" data-tab="piano">Piano</button>
+    </div>
+  </div>
+
+  <section id="view-dati">
+    <div id="exbanner" class="banner" hidden>
+      <span>Stai guardando un <b>esempio</b>. Puoi modificarlo oppure ripartire da zero.</span>
+      <button class="btn" id="btn-reset">Ricomincia da zero</button>
+    </div>
+    <div id="editor"></div>
+  </section>
+
+  <section id="view-piano" hidden>
+    <div class="bar">
+      <span class="msg" id="planmsg"></span>
+      <button class="btn" id="btn-copy">Copia come testo</button>
+      <button class="btn primary" id="btn-dl-plan" hidden>Scarica da stampare</button>
+      <button class="btn primary" id="btn-print" hidden>Stampa</button>
+    </div>
+    <div id="warns"></div>
+    <div id="plan"></div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="file-in" accept=".json,application/json" hidden>
+
+<script>
+const PLAN_CSS = `
+.sheet{font-family:var(--body);color:var(--fg)}
+.p-head{display:grid;grid-template-columns:1fr minmax(220px,300px);gap:12px;margin-bottom:12px}
+.p-title{background:color-mix(in srgb,#c9d3fb 55%,var(--surface));border-radius:18px;padding:16px 20px;text-align:center}
+.p-title h1{font-family:var(--display);font-weight:700;font-size:clamp(1.4rem,3.6vw,2.3rem);letter-spacing:.01em;margin:0;line-height:1.1;text-wrap:balance}
+.p-title p{margin:6px 0 0;font-size:1rem}
+.p-goal{background:color-mix(in srgb,#f7b6d2 45%,var(--surface));border-radius:18px;padding:12px 16px;font-size:.85rem}
+.p-goal h3,.p-dead h3{font-family:var(--display);font-weight:600;font-size:1rem;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.p-goal ul{margin:0;padding-left:16px}
+.p-dead{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:10px 16px;margin-bottom:12px}
+.p-dead ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px}
+.p-dead li{display:flex;gap:8px;align-items:center;font-size:.9rem}
+.p-dead .dd{font-weight:600;font-variant-numeric:tabular-nums}
+.p-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.day{background:var(--surface);border:1.5px solid color-mix(in srgb,var(--c) 70%,var(--surface));border-radius:16px;overflow:hidden;break-inside:avoid}
+.day h2{margin:0;padding:8px 16px;font-family:var(--display);font-weight:600;font-size:1.2rem;text-transform:uppercase;letter-spacing:.02em;background:color-mix(in srgb,var(--c) 55%,var(--surface))}
+.rows{list-style:none;margin:0;padding:8px 14px 10px;display:flex;flex-direction:column;gap:5px}
+.r{display:grid;grid-template-columns:22px 7.4em 7.6em minmax(0,1fr);gap:8px;align-items:center;font-size:.92rem;min-height:28px}
+.tm{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{background:var(--c);color:var(--on-tag);border-radius:7px;padding:3px 6px;font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.03em;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag.wide{grid-column:3 / 5;text-align:left;padding-left:12px}
+.ds{min-width:0;overflow-wrap:anywhere}
+.pz .lbl{color:var(--muted);padding-left:6px}
+.pz{min-height:22px;font-size:.86rem;color:var(--muted)}
+.ico{width:20px;height:20px;color:var(--fg)}
+.ck{display:grid;place-items:center}
+.ck input{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:1.8px solid var(--fg);border-radius:4px;margin:0;cursor:pointer;display:grid;place-items:center;background:var(--surface)}
+.ck input:checked{background:var(--fg)}
+.ck input:checked::after{content:"";width:5px;height:9px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.r.done .ds,.r.done .tm{text-decoration:line-through;color:var(--muted)}
+.box{margin:2px 14px 12px;background:color-mix(in srgb,#d9c6f5 45%,var(--surface));border-radius:10px;padding:8px 12px;font-size:.85rem}
+.box b{font-family:var(--display);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.box ul{margin:2px 0 0;padding-left:16px}
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;border:1.5px solid color-mix(in srgb,#8fb4f2 70%,var(--surface));border-radius:14px;padding:10px 16px;margin-top:14px}
+.legend h3{font-family:var(--display);font-weight:600;font-size:1rem;margin:0;text-transform:uppercase;letter-spacing:.04em}
+.legend span{display:flex;align-items:center;gap:6px;font-size:.88rem}
+.legend i{display:inline-block;width:26px;height:16px;border-radius:5px;background:var(--c)}
+.rules{display:flex;gap:16px;align-items:center;background:color-mix(in srgb,#c9d3fb 40%,var(--surface));border-radius:16px;padding:12px 18px;margin-top:12px}
+.rules h3{font-family:var(--display);font-weight:600;font-size:1.1rem;margin:0;text-transform:uppercase}
+.rules ul{margin:0;padding-left:16px;font-size:.88rem}
+.rules svg{width:34px;height:34px;flex:none}
+.empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
+@media (max-width:760px){.p-grid{grid-template-columns:1fr}.p-head{grid-template-columns:1fr}}
+@media (max-width:420px){.r{grid-template-columns:20px 6.6em 6.4em minmax(0,1fr);gap:6px;font-size:.86rem}.rows{padding-inline:10px}.rules{flex-direction:column;align-items:flex-start}}
+`;
+document.getElementById('plancss').textContent = PLAN_CSS;
+
+/* ---------- utilities ---------- */
+const $ = s => document.querySelector(s);
+const DAYS = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+const DAYS_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+const MONTHS = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const PALETTE = ['#8fb4f2','#8fe0e3','#f9c48a','#a6e3b5','#f7b6d2','#d9c6f5','#a8d4f7','#f6e08a','#c9d38a','#f2a7a0','#b9c2f7','#f5c6a5'];
+const HEADS = ['#f7b6d2','#a8d4f7','#a6e3b5','#d9c6f5','#f6e08a','#f9c48a'];
+const KINDS = {verifica:'Verifica',interrogazione:'Interrogazione',consegna:'Compito da consegnare'};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toMin = s => { if(!s) return NaN; const [h,m] = s.split(':').map(Number); return h*60+m; };
+const fmt = m => String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const d2n = s => { const [y,m,d] = s.split('-').map(Number); return Math.round(Date.UTC(y,m-1,d)/864e5); };
+const n2d = n => new Date(n*864e5).toISOString().slice(0,10);
+const dowOf = n => new Date(n*864e5).getUTCDay();
+const dateParts = n => { const d = new Date(n*864e5); return {d:d.getUTCDate(), m:d.getUTCMonth(), y:d.getUTCFullYear(), w:d.getUTCDay()}; };
+const uid = () => Math.random().toString(36).slice(2,9);
+const todayISO = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; };
+
+/* ---------- state ---------- */
+const KEY = 'programma-studio-v1';
+function emptyData(){
+  return {example:false,start:todayISO(),sess:40,pausa:20,maxPerDay:4,buffer:15,
+    subtitle:'Studio organizzato, con le pause giuste',
+    goal:'completare tutti i compiti\narrivare alle verifiche preparata/o\nstudio sostenibile con pause',
+    subjects:[],tasks:[],week:{0:[],1:[],2:[],3:[],4:[],5:[],6:[]},commitments:[],off:[],done:{}};
+}
+function sample(){
+  const S = ['Matematica','Scienze','Geostoria','Inglese','Arte','Latino','Fisica'];
+  const cols = ['#8fb4f2','#8fe0e3','#f9c48a','#a6e3b5','#f7b6d2','#d9c6f5','#a8d4f7'];
+  const subjects = S.map((n,i)=>({id:'s'+i,name:n,color:cols[i]}));
+  const id = n => subjects.find(s=>s.name===n).id;
+  return {
+    example:true,
+    start:'2026-11-02', sess:40, pausa:20, maxPerDay:4, buffer:15,
+    subtitle:'Studio essenziale e organizzato per arrivare preparata/o',
+    goal:'completare tutti i compiti\narrivare alle verifiche preparata/o\nstudio sostenibile con pause',
+    subjects,
+    tasks:[
+      {id:'t1',subj:id('Latino'),kind:'consegna',date:'2026-11-03',mode:'sessioni',sessions:1,note:'Fare la versione',from:1,to:1,pps:2,ripasso:false},
+      {id:'t2',subj:id('Matematica'),kind:'consegna',date:'2026-11-04',mode:'sessioni',sessions:2,note:'Esercizi pag. 112',from:1,to:1,pps:2,ripasso:false},
+      {id:'t3',subj:id('Fisica'),kind:'consegna',date:'2026-11-05',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
+      {id:'t4',subj:id('Inglese'),kind:'consegna',date:'2026-11-06',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
+      {id:'t5',subj:id('Arte'),kind:'verifica',date:'2026-11-09',mode:'pagine',from:1,to:15,pps:5,sessions:1,note:'',ripasso:false},
+      {id:'t6',subj:id('Geostoria'),kind:'interrogazione',date:'2026-11-12',mode:'pagine',from:1,to:19,pps:3,sessions:1,note:'',ripasso:true},
+      {id:'t7',subj:id('Scienze'),kind:'verifica',date:'2026-11-13',mode:'pagine',from:1,to:18,pps:3,sessions:1,note:'',ripasso:true},
+    ],
+    week:{1:[['16:00','18:30']],2:[['15:30','18:30']],3:[['15:30','18:30']],4:[['15:30','18:30']],5:[['15:30','19:45']],6:[['10:00','12:00'],['16:00','17:00']],0:[['10:00','12:00'],['16:00','17:30']]},
+    commitments:[
+      {id:'c1',name:'Danza',days:[1],from:'19:00',to:'21:00',relax:true,color:'#f7b6d2'},
+      {id:'c2',name:'Danza',days:[3],from:'19:00',to:'20:00',relax:true,color:'#f7b6d2'},
+      {id:'c3',name:'Danza',days:[5],from:'17:00',to:'19:00',relax:false,color:'#f7b6d2'},
+    ],
+    off:[], done:{}
+  };
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) { S = null; }
+if(!S || !Array.isArray(S.subjects) || S.example) S = emptyData();
+normalize();
+function normalize(){
+  const d = emptyData();
+  for(const k of ['start','sess','pausa','maxPerDay','buffer','subtitle','goal']) if(S[k]===undefined) S[k]=d[k];
+  S.subjects ||= []; S.tasks ||= []; S.commitments ||= []; S.off ||= []; S.done ||= {}; S.week ||= {};
+  for(let i=0;i<7;i++) S.week[i] ||= [];
+  for(const c of S.commitments){ if(!Array.isArray(c.days)) c.days = c.day!==undefined ? [+c.day] : []; delete c.day; }
+}
+let saveT;
+function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }, 250); }
+function touched(){ if(S.example){ S.example=false; $('#exbanner').hidden = true; } save(); }
+
+/* ---------- planner ---------- */
+function subtract(iv, blocks){
+  let res = iv.map(x=>[...x]);
+  for(const [ba,bb] of blocks){
+    const nx=[];
+    for(const [a,b] of res){
+      if(bb<=a || ba>=b){ nx.push([a,b]); continue; }
+      if(ba>a) nx.push([a,ba]);
+      if(bb<b) nx.push([bb,b]);
+    }
+    res = nx;
+  }
+  return res;
+}
+function daySlots(n){
+  if(!S.start || n < d2n(S.start)) return [];
+  if(S.off.includes(n2d(n))) return [];
+  const w = dowOf(n), sess = Math.max(10,+S.sess||40), pausa = Math.max(0,+S.pausa||0), buf = Math.max(0,+S.buffer||0);
+  let iv = (S.week[w]||[]).map(([a,b])=>[toMin(a),toMin(b)]).filter(x=>x[1]>x[0]).sort((x,y)=>x[0]-y[0]);
+  const blocks = S.commitments.filter(c=>c.days.includes(w) && c.from && c.to).map(c=>[toMin(c.from)-buf, toMin(c.to)+buf]);
+  iv = subtract(iv, blocks);
+  const slots=[];
+  for(const [a,b] of iv){ let t=a; while(t+sess<=b){ slots.push([t,t+sess]); t+=sess+pausa; } }
+  return slots.slice(0, Math.max(1, +S.maxPerDay||4));
+}
+const subjById = id => S.subjects.find(s=>s.id===id);
+
+function buildPlan(){
+  const warnings = [];
+  if(!S.start){ return {days:[],warnings:['Imposta la data da cui iniziare a studiare.'],tasks:[]}; }
+  const start = d2n(S.start);
+  const tasks = [];
+  for(const t of S.tasks){
+    const sub = subjById(t.subj);
+    if(!sub || !t.date) continue;
+    const dl = d2n(t.date);
+    const T = {src:t, sub, dl, units:[], rem:0, credit:0, idx:0};
+    if(dl <= start){ warnings.push(`${sub.name}: la scadenza del ${fmtDate(dl)} è prima dell'inizio del piano, quindi non è stata pianificata.`); T.skip=true; tasks.push(T); continue; }
+    if(t.mode==='pagine'){
+      const a = Math.round(+t.from), b = Math.round(+t.to), pps = Math.max(1, Math.round(+t.pps)||2);
+      if(!(a>=0 && b>=a)){ warnings.push(`${sub.name}: controlla le pagine (da ${t.from} a ${t.to}).`); T.skip=true; tasks.push(T); continue; }
+      const n = b-a+1, k = Math.ceil(n/pps), base = Math.floor(n/k), extra = n%k;
+      let p = a;
+      for(let i=0;i<k;i++){ const len = base + (i<extra?1:0); const e = p+len-1;
+        T.units.push(len===1 ? `pag. ${p}${e===b?' (fine)':` (su ${b})`}` : `pag. ${p}–${e} ${e===b?'(fine)':`(su ${b})`}`); p = e+1; }
+    } else {
+      const k = Math.max(1, Math.round(+t.sessions)||1);
+      const note = (t.note||'').trim() || 'Studio';
+      for(let i=0;i<k;i++) T.units.push(k>1 ? `${note} (${i+1}ª parte)` : note);
+    }
+    T.rem = T.units.length;
+    tasks.push(T);
+  }
+  const act = tasks.filter(t=>!t.skip);
+  const end = act.length ? Math.max(...act.map(t=>t.dl)) : start;
+  const cap = {}, used = {};
+  for(let n=start;n<end;n++){ cap[n] = daySlots(n).length; used[n] = []; }
+  // reserve review sessions
+  for(const t of [...act].sort((a,b)=>a.dl-b.dl)){
+    t.last = t.dl-1;
+    if(!t.src.ripasso) continue;
+    let placed = false;
+    for(let n=t.dl-1;n>=start;n--){
+      if(used[n].length < cap[n]){ used[n].push({t,review:true,n}); t.last = n-1; t.reviewDay = n; placed = true; break; }
+    }
+    if(!placed) warnings.push(`${t.sub.name}: non c'è un momento libero per il ripasso prima del ${fmtDate(t.dl)}.`);
+  }
+  // earliest deadline first; each task's sessions spread evenly over its free days
+  for(const t of [...act].sort((a,b)=>a.dl-b.dl || b.units.length-a.units.length)){
+    const k = t.units.length;
+    for(let i=0;i<k;i++){
+      const elig = [];
+      for(let n=start;n<=t.last;n++) if(cap[n]-used[n].length>0) elig.push(n);
+      if(!elig.length) break;
+      // ideal day for this session, given how many are left
+      const left = k-i;
+      let target;
+      if(left >= elig.length) target = elig[0];
+      else {
+        const placed = [];
+        for(let n=start;n<=t.last;n++) for(const u of used[n]) if(u.t===t && !u.review) placed.push(n);
+        const after = placed.length ? Math.max(...placed) : start-1;
+        const pool = elig.filter(n=>n>after);
+        const src = pool.length >= left ? pool : elig;
+        target = src[Math.max(0, Math.floor((src.length/left - 1)/2))];
+      }
+      used[target].push({t,n:target}); t.rem--;
+    }
+  }
+  for(const t of act) if(t.rem>0) warnings.push(`${t.sub.name}: ${t.rem===1?'manca 1 sessione':`mancano ${t.rem} sessioni`} prima del ${fmtDate(t.dl)}. Aggiungi tempo libero, alza il numero massimo di sessioni al giorno o metti più pagine per sessione.`);
+  // compose days
+  const days = [];
+  for(let n=start;n<end;n++){
+    const items = order(used[n]);
+    const slots = daySlots(n);
+    const rows = [];
+    items.forEach((it,i)=>{
+      const [a,b] = slots[i];
+      let label;
+      if(it.review) label = it.t.reviewDay===it.t.dl-1 ? `Ripasso generale (${KINDS[it.t.src.kind].toLowerCase()} domani)` : 'Ripasso generale';
+      else label = it.t.units[it.t.idx++];
+      rows.push({type:'s', a, b, sub:it.t.sub, label, key:`${n2d(n)}|${a}|${it.t.src.id}`});
+      const nx = slots[i+1];
+      if(i<items.length-1 && nx && nx[0]-b>0 && nx[0]-b<=Math.max(+S.pausa||0,1)) rows.push({type:'p', a:b, b:nx[0]});
+    });
+    const w = dowOf(n);
+    const coms = S.commitments.filter(c=>c.days.includes(w) && c.from && c.to);
+    const due = tasks.filter(t=>t.dl===n+1);
+    if(!items.length && !due.length) continue;
+    for(const c of coms){
+      rows.push({type:'c', a:toMin(c.from), b:toMin(c.to), c});
+      if(c.relax) rows.push({type:'x', a:toMin(c.to), b:toMin(c.to)+0.5, c});
+    }
+    rows.sort((x,y)=>x.a-y.a || (x.type==='x')-(y.type==='x'));
+    days.push({n, rows, due});
+  }
+  return {days, warnings, tasks};
+}
+function order(items){
+  const pool = [...items].sort((a,b)=>a.t.dl-b.t.dl);
+  const out = [];
+  while(pool.length){
+    const last = out[out.length-1];
+    let i = pool.findIndex(x=>!last || x.t.sub.id!==last.t.sub.id);
+    if(i<0) i = 0;
+    out.push(pool.splice(i,1)[0]);
+  }
+  return out;
+}
+function fmtDate(n){ const p = dateParts(n); return `${DAYS[p.w].toLowerCase()} ${p.d} ${MONTHS[p.m]}`; }
+
+/* ---------- plan rendering ---------- */
+const ICON_ACT = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="4" r="2" fill="currentColor"/><path d="M8 21l3-6 3 2 1 4"/><path d="M6 11l4-3 4 1 3 3 3-1"/><path d="M11 15l1-6"/></svg>';
+const ICON_HOME = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>';
+const ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3 2"/></svg>';
+
+function dueText(t){
+  const s = t.src;
+  if(s.kind==='consegna') return `${t.sub.name}: ${esc((s.note||'compito').trim())}`;
+  const what = s.mode==='pagine' ? ` (pag. ${s.from}–${s.to})` : (s.note ? ` (${esc(s.note)})` : '');
+  return `${KINDS[s.kind]} di ${esc(t.sub.name.toLowerCase())}${what}`;
+}
+function planHTML(P, interactive){
+  if(!P.days.length) return `<div class="empty">Ancora nessun piano. Nella scheda <b>Dati</b> aggiungi almeno una materia, una verifica o un compito con la data, e qualche fascia oraria libera per studiare.</div>`;
+  const months = [];
+  for(const d of P.days){ const p = dateParts(d.n); const k = MONTHS[p.m].toUpperCase()+' '+p.y; if(!months.includes(k)) months.push(k); }
+  let ml = months[0];
+  if(months.length>1){ const [m1,y1] = months[0].split(' '), [m2,y2] = months[months.length-1].split(' '); ml = y1===y2 ? `${m1} – ${m2} ${y2}` : `${months[0]} – ${months[months.length-1]}`; }
+  const goal = (S.goal||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  const dl = P.tasks.filter(t=>!t.skip).sort((a,b)=>a.dl-b.dl);
+  let h = `<div class="sheet"><header class="p-head"><div class="p-title"><h1>PIANO DI STUDIO • ${esc(ml)}</h1>${S.subtitle?`<p>${esc(S.subtitle)}</p>`:''}</div>`;
+  if(goal.length) h += `<aside class="p-goal"><h3>Obiettivo</h3><ul>${goal.map(g=>`<li>${esc(g)}</li>`).join('')}</ul></aside>`;
+  h += `</header>`;
+  if(dl.length) h += `<section class="p-dead"><h3>Scadenze</h3><ul>${dl.map(t=>{const p=dateParts(t.dl);return `<li><span class="dd">${DAYS_SHORT[p.w]} ${p.d}/${p.m+1}</span><span class="tag" style="--c:${t.sub.color}">${esc(t.sub.name)}</span><span>${t.src.kind==='consegna'?esc((t.src.note||'consegna').trim()):KINDS[t.src.kind]}</span></li>`}).join('')}</ul></section>`;
+  h += `<div class="p-grid">`;
+  P.days.forEach((d,i)=>{
+    const p = dateParts(d.n);
+    h += `<article class="day" style="--c:${HEADS[i%HEADS.length]}"><h2>${DAYS[p.w]} ${p.d} ${MONTHS[p.m]} ${p.y}</h2><ul class="rows">`;
+    for(const r of d.rows){
+      if(r.type==='s'){
+        const done = !!S.done[r.key];
+        const box = interactive ? `<input type="checkbox" data-done="${esc(r.key)}" aria-label="Fatto" ${done?'checked':''}>` : `<input type="checkbox" ${done?'checked':''} disabled>`;
+        h += `<li class="r${done?' done':''}"><span class="ck">${box}</span><span class="tm">${fmt(r.a)} – ${fmt(r.b)}</span><span class="tag" style="--c:${r.sub.color}">${esc(r.sub.name)}</span><span class="ds">${esc(r.label)}</span></li>`;
+      } else if(r.type==='p'){
+        h += `<li class="r pz"><span class="ck"></span><span class="tm">${fmt(r.a)} – ${fmt(r.b)}</span><span class="lbl">Pausa</span><span></span></li>`;
+      } else if(r.type==='c'){
+        h += `<li class="r"><span class="ck">${ICON_ACT}</span><span class="tm">${fmt(r.a)} – ${fmt(r.b)}</span><span class="tag wide" style="--c:${r.c.color||'#f7b6d2'}">${esc(r.c.name)}</span></li>`;
+      } else {
+        h += `<li class="r"><span class="ck">${ICON_HOME}</span><span class="tm">Dopo ${esc((r.c.name||'').toLowerCase())}</span><span class="tag wide" style="--c:#f6e08a">Relax</span></li>`;
+      }
+    }
+    h += `</ul>`;
+    if(d.due.length) h += `<div class="box"><b>Per domani: da consegnare o verifiche</b><ul>${d.due.map(t=>`<li>${dueText(t)}</li>`).join('')}</ul></div>`;
+    h += `</article>`;
+  });
+  h += `</div>`;
+  const usedSubs = S.subjects.filter(s=>P.tasks.some(t=>t.sub.id===s.id && !t.skip));
+  if(usedSubs.length) h += `<div class="legend"><h3>Legenda materie</h3>${usedSubs.map(s=>`<span><i style="--c:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>`;
+  const rules = [`Sessioni di ${S.sess} minuti e pausa di ${S.pausa} minuti`, 'Se sei stanca/o puoi ridurre i tempi'];
+  if(P.tasks.some(t=>t.src.ripasso && !t.skip)) rules.push('Il giorno prima di una verifica si fa il ripasso generale');
+  rules.push('Spunta ogni sessione finita: vedi subito quanto hai già fatto');
+  h += `<div class="rules">${ICON_CLOCK}<h3>Regole:</h3><ul>${rules.map(r=>`<li>${esc(r)}</li>`).join('')}</ul></div></div>`;
+  return h;
+}
+let PLAN;
+function renderPlan(){
+  PLAN = buildPlan();
+  $('#plan').innerHTML = planHTML(PLAN, true);
+  $('#warns').innerHTML = PLAN.warnings.length ? `<div class="warns"><b>Da controllare</b><ul>${PLAN.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>` : '';
+  const tot = PLAN.days.reduce((a,d)=>a+d.rows.filter(r=>r.type==='s').length,0);
+  const done = PLAN.days.reduce((a,d)=>a+d.rows.filter(r=>r.type==='s' && S.done[r.key]).length,0);
+  $('#planmsg').textContent = tot ? `${tot} sessioni in ${PLAN.days.length} giorni · ${done} fatte` : '';
+}
+$('#plan').addEventListener('change', e=>{
+  const k = e.target.dataset.done; if(!k) return;
+  if(e.target.checked) S.done[k] = true; else delete S.done[k];
+  e.target.closest('.r').classList.toggle('done', e.target.checked);
+  save();
+  const tot = PLAN.days.reduce((a,d)=>a+d.rows.filter(r=>r.type==='s').length,0);
+  const done = PLAN.days.reduce((a,d)=>a+d.rows.filter(r=>r.type==='s' && S.done[r.key]).length,0);
+  $('#planmsg').textContent = `${tot} sessioni in ${PLAN.days.length} giorni · ${done} fatte`;
+});
+
+/* ---------- editor ---------- */
+const WEEK_ORDER = [1,2,3,4,5,6,0];
+function opt(v, label, cur){ return `<option value="${esc(v)}" ${String(v)===String(cur)?'selected':''}>${esc(label)}</option>`; }
+function renderEditor(){
+  const focusId = document.activeElement && document.activeElement.id;
+  let h = '';
+  if(!S.subjects.length && !S.tasks.length) h += `<div class="banner" style="background:var(--soft);color:var(--fg)"><span>Il piano è vuoto. Segui i passi da 1 a 5: materie, verifiche, orari liberi, impegni fissi. Tutto si può modificare quando vuoi.</span><button class="btn" id="btn-example">Prova con un esempio</button></div>`;
+  // 1 subjects
+  h += `<div class="panel"><h2><span class="step">1</span>Materie</h2><p class="hint">Ogni materia ha un colore: lo ritrovi nelle etichette del piano.</p><div class="subjs">`;
+  for(const s of S.subjects){
+    h += `<div class="subj"><input type="color" id="s-${s.id}-color" value="${esc(s.color)}" data-c="subjects" data-id="${s.id}" data-f="color" aria-label="Colore"><input type="text" id="s-${s.id}-name" value="${esc(s.name)}" data-c="subjects" data-id="${s.id}" data-f="name" aria-label="Nome materia" placeholder="es. Matematica"><button class="x" data-del="subjects" data-id="${s.id}" title="Elimina materia (e le sue verifiche)">×</button></div>`;
+  }
+  h += `</div><button class="btn ghost" id="add-subj" data-add="subjects">+ Materia</button></div>`;
+  // 2 tasks
+  h += `<div class="panel"><h2><span class="step">2</span>Verifiche e compiti</h2><p class="hint">Per lo studio indica le pagine e quante pagine fare per sessione. Per esercizi o compiti indica quante sessioni servono. Il ripasso aggiunge una sessione il giorno prima.</p><div class="list">`;
+  const sortedT = [...S.tasks].sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
+  for(const t of sortedT){
+    const p = `data-c="tasks" data-id="${t.id}"`;
+    h += `<div class="task"><button class="x del" data-del="tasks" data-id="${t.id}" title="Elimina">×</button>
+      <label class="f">Materia<select id="t-${t.id}-subj" ${p} data-f="subj">${S.subjects.map(s=>opt(s.id,s.name,t.subj)).join('')}${!subjById(t.subj)?opt('','—','') :''}</select></label>
+      <label class="f">Tipo<select id="t-${t.id}-kind" ${p} data-f="kind" data-struct>${Object.entries(KINDS).map(([k,v])=>opt(k,v,t.kind)).join('')}</select></label>
+      <label class="f">Data<input type="date" id="t-${t.id}-date" ${p} data-f="date" value="${esc(t.date)}"></label>
+      <label class="f">Cosa fare<select id="t-${t.id}-mode" ${p} data-f="mode" data-struct>${opt('pagine','Pagine da studiare',t.mode)}${opt('sessioni','Esercizi / altro',t.mode)}</select></label>`;
+    if(t.mode==='pagine'){
+      h += `<label class="f">Da pagina<input type="number" min="0" id="t-${t.id}-from" ${p} data-f="from" value="${esc(t.from)}"></label>
+      <label class="f">A pagina<input type="number" min="0" id="t-${t.id}-to" ${p} data-f="to" value="${esc(t.to)}"></label>
+      <label class="f">Pagine per sessione<input type="number" min="1" id="t-${t.id}-pps" ${p} data-f="pps" value="${esc(t.pps)}"></label>`;
+    } else {
+      h += `<label class="f wide">Descrizione<input type="text" id="t-${t.id}-note" ${p} data-f="note" value="${esc(t.note)}" placeholder="es. Esercizi pag. 45"></label>
+      <label class="f">Sessioni<input type="number" min="1" id="t-${t.id}-sessions" ${p} data-f="sessions" value="${esc(t.sessions)}"></label>`;
+    }
+    h += `<label class="chk"><input type="checkbox" id="t-${t.id}-ripasso" ${p} data-f="ripasso" ${t.ripasso?'checked':''}> Ripasso il giorno prima</label></div>`;
+  }
+  if(!S.tasks.length) h += `<p class="none">Nessuna verifica o compito. Aggiungine uno.</p>`;
+  h += `</div><div class="row-actions"><button class="btn ghost" id="add-task" data-add="tasks" ${S.subjects.length?'':'disabled'}>+ Verifica o compito</button>${S.subjects.length?'':'<span class="none">Prima aggiungi una materia.</span>'}</div></div>`;
+  // 3 time
+  h += `<div class="panel"><h2><span class="step">3</span>Tempo per studiare</h2><p class="hint">Le fasce orarie libere di ogni settimana. Il piano le divide in sessioni con le pause.</p><div class="week">`;
+  for(const w of WEEK_ORDER){
+    h += `<div class="wday"><b>${DAYS[w]}</b><div class="slots">`;
+    (S.week[w]||[]).forEach((sl,i)=>{
+      h += `<span class="slot"><input type="time" id="w-${w}-${i}-0" data-c="week" data-day="${w}" data-i="${i}" data-f="0" value="${esc(sl[0])}" aria-label="Dalle"><span>–</span><input type="time" id="w-${w}-${i}-1" data-c="week" data-day="${w}" data-i="${i}" data-f="1" value="${esc(sl[1])}" aria-label="Alle"><button class="x" data-del="week" data-day="${w}" data-i="${i}" title="Togli fascia">×</button></span>`;
+    });
+    if(!(S.week[w]||[]).length) h += `<span class="none">Niente studio</span>`;
+    h += `<button class="btn ghost" id="add-w-${w}" data-add="week" data-day="${w}" style="padding:4px 10px">+ fascia</button></div></div>`;
+  }
+  h += `</div></div>`;
+  // 4 commitments
+  h += `<div class="panel"><h2><span class="step">4</span>Impegni fissi</h2><p class="hint">Sport, corsi, danza: in quegli orari non si studia e compaiono nel piano. "Relax dopo" aggiunge un momento di riposo.</p><div class="list">`;
+  for(const c of S.commitments){
+    const p = `data-c="commitments" data-id="${c.id}"`;
+    h += `<div class="commit"><label class="f">Impegno<input type="text" id="c-${c.id}-name" ${p} data-f="name" value="${esc(c.name)}" placeholder="es. Danza"></label>
+      <div class="f"><span>Giorni</span><div class="dtog" role="group" aria-label="Giorni">${WEEK_ORDER.map(w=>`<button type="button" id="c-${c.id}-d${w}" class="dbtn" data-cday="${w}" data-id="${c.id}" aria-pressed="${c.days.includes(w)}">${DAYS_SHORT[w]}</button>`).join('')}</div></div>
+      <label class="f">Dalle<input type="time" id="c-${c.id}-from" ${p} data-f="from" value="${esc(c.from)}"></label>
+      <label class="f">Alle<input type="time" id="c-${c.id}-to" ${p} data-f="to" value="${esc(c.to)}"></label>
+      <label class="chk"><input type="checkbox" id="c-${c.id}-relax" ${p} data-f="relax" ${c.relax?'checked':''}> Relax dopo</label>
+      <input type="color" id="c-${c.id}-color" ${p} data-f="color" value="${esc(c.color||'#f7b6d2')}" aria-label="Colore">
+      <button class="x" data-del="commitments" data-id="${c.id}" title="Elimina">×</button></div>`;
+  }
+  h += `</div><div class="row-actions"><button class="btn ghost" id="add-com" data-add="commitments">+ Impegno</button></div>`;
+  h += `<h2 style="margin-top:18px;font-size:1rem">Giorni senza studio</h2><p class="hint">Feste, gite, giorni di riposo.</p><div style="display:flex;gap:8px;max-width:320px"><input type="date" id="off-in" aria-label="Giorno senza studio"><button class="btn" id="add-off" data-add="off">Aggiungi</button></div><div class="offs">`;
+  for(const o of [...S.off].sort()) h += `<span class="chip">${esc(fmtDate(d2n(o)))}<button class="x" data-del="off" data-v="${esc(o)}" title="Togli">×</button></span>`;
+  h += `</div></div>`;
+  // 5 settings
+  h += `<div class="panel"><h2><span class="step">5</span>Impostazioni</h2><p class="hint">Durata delle sessioni e da quando partire.</p><div class="grid-set">
+    <label class="f">Inizio piano<input type="date" id="set-start" data-c="set" data-f="start" value="${esc(S.start)}"></label>
+    <label class="f">Sessione (minuti)<input type="number" min="15" max="120" id="set-sess" data-c="set" data-f="sess" value="${esc(S.sess)}"></label>
+    <label class="f">Pausa (minuti)<input type="number" min="0" max="60" id="set-pausa" data-c="set" data-f="pausa" value="${esc(S.pausa)}"></label>
+    <label class="f">Max sessioni al giorno<input type="number" min="1" max="10" id="set-max" data-c="set" data-f="maxPerDay" value="${esc(S.maxPerDay)}"></label>
+    <label class="f">Margine prima/dopo impegni (min)<input type="number" min="0" max="90" id="set-buf" data-c="set" data-f="buffer" value="${esc(S.buffer)}"></label>
+  </div><div class="grid-set" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+    <label class="f">Sottotitolo del piano<input type="text" id="set-sub" data-c="set" data-f="subtitle" value="${esc(S.subtitle)}"></label>
+    <label class="f">Obiettivo (una riga per punto)<textarea id="set-goal" rows="3" data-c="set" data-f="goal">${esc(S.goal)}</textarea></label>
+  </div><div class="row-actions"><button class="btn primary" id="go-plan">Vedi il piano</button><button class="btn" id="btn-export" hidden>Salva i dati in un file</button><button class="btn" id="btn-import">Carica dati da file</button></div></div>`;
+  $('#editor').innerHTML = h;
+  $('#exbanner').hidden = !S.example;
+  applyDownloads();
+  if(focusId){ const el = document.getElementById(focusId); if(el) el.focus(); }
+}
+const NUMF = new Set(['sess','pausa','maxPerDay','buffer','from','to','pps','sessions','day']);
+function setField(el){
+  const c = el.dataset.c, f = el.dataset.f;
+  let v = el.type==='checkbox' ? el.checked : el.value;
+  if(NUMF.has(f) && v!=='') v = Number(v);
+  if(c==='set') S[f] = v;
+  else if(c==='week') S.week[el.dataset.day][+el.dataset.i][+f] = v;
+  else { const o = S[c].find(x=>x.id===el.dataset.id); if(o) o[f] = v; }
+}
+let planT;
+function schedulePlan(){ clearTimeout(planT); planT = setTimeout(renderPlan, 150); }
+$('#editor').addEventListener('input', e=>{
+  if(!e.target.dataset.c) return;
+  setField(e.target); touched(); schedulePlan();
+});
+$('#editor').addEventListener('change', e=>{
+  if(!e.target.dataset.c) return;
+  setField(e.target); touched();
+  if('struct' in e.target.dataset){
+    const t = S.tasks.find(x=>x.id===e.target.dataset.id);
+    if(t && e.target.dataset.f==='kind') t.ripasso = t.kind!=='consegna';
+    renderEditor();
+  }
+  if(e.target.dataset.f==='name' && e.target.dataset.c==='subjects') {}
+  schedulePlan();
+});
+$('#editor').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.id==='go-plan') return showTab('piano');
+  if(b.dataset.cday!==undefined){
+    const c = S.commitments.find(x=>x.id===b.dataset.id); if(!c) return;
+    const w = +b.dataset.cday;
+    c.days = c.days.includes(w) ? c.days.filter(x=>x!==w) : [...c.days, w];
+    touched(); renderEditor(); renderPlan(); return;
+  }
+  if(b.id==='btn-export') return exportData();
+  if(b.id==='btn-import') return $('#file-in').click();
+  if(b.id==='btn-example'){ S = sample(); S.done = {}; normalize(); save(); renderEditor(); renderPlan(); return toast('Esempio caricato.'); }
+  if(b.dataset.add){
+    const k = b.dataset.add;
+    if(k==='subjects'){ const used = S.subjects.map(s=>s.color); S.subjects.push({id:uid(),name:'',color:PALETTE.find(c=>!used.includes(c))||PALETTE[S.subjects.length%PALETTE.length]}); }
+    if(k==='tasks'){ const d = new Date(Date.now()+7*864e5); S.tasks.push({id:uid(),subj:S.subjects[0].id,kind:'verifica',date:n2d(Math.max(d2n(S.start||todayISO())+7, 0)),mode:'pagine',from:1,to:10,pps:2,sessions:1,note:'',ripasso:true}); }
+    if(k==='week'){ const w = b.dataset.day; S.week[w].push(S.week[w].length?['16:00','17:00']:['15:30','17:30']); }
+    if(k==='commitments') S.commitments.push({id:uid(),name:'',days:[],from:'17:00',to:'18:00',relax:false,color:'#f7b6d2'});
+    if(k==='off'){ const v = $('#off-in').value; if(!v) return toast('Scegli prima una data.'); if(!S.off.includes(v)) S.off.push(v); }
+    touched(); renderEditor(); renderPlan();
+    const coll = k==='subjects'?S.subjects:k==='commitments'?S.commitments:null;
+    if(coll){ const last = coll[coll.length-1]; const el = document.getElementById((k==='subjects'?'s-':'c-')+last.id+'-name'); if(el) el.focus(); }
+    return;
+  }
+  if(b.dataset.del){
+    const k = b.dataset.del;
+    if(k==='subjects'){
+      const n = S.tasks.filter(t=>t.subj===b.dataset.id).length;
+      if(n && !b.classList.contains('armed')){ b.classList.add('armed'); b.textContent = `Elimina anche ${n} verific${n>1?'he':'a'}?`; setTimeout(()=>{ if(b.isConnected){ b.classList.remove('armed'); b.textContent='×'; } }, 4000); return; }
+      S.subjects = S.subjects.filter(s=>s.id!==b.dataset.id); S.tasks = S.tasks.filter(t=>t.subj!==b.dataset.id);
+    }
+    if(k==='tasks') S.tasks = S.tasks.filter(t=>t.id!==b.dataset.id);
+    if(k==='commitments') S.commitments = S.commitments.filter(t=>t.id!==b.dataset.id);
+    if(k==='week') S.week[b.dataset.day].splice(+b.dataset.i,1);
+    if(k==='off') S.off = S.off.filter(o=>o!==b.dataset.v);
+    touched(); renderEditor(); renderPlan();
+  }
+});
+let resetArmed = false;
+$('#btn-reset').addEventListener('click', e=>{
+  if(!resetArmed){ resetArmed = true; e.target.textContent = 'Sicuro? Clicca di nuovo'; setTimeout(()=>{ resetArmed=false; e.target.textContent='Ricomincia da zero'; }, 4000); return; }
+  S = emptyData(); save(); renderEditor(); renderPlan(); toast('Dati svuotati.');
+});
+
+/* ---------- tabs ---------- */
+function showTab(t){
+  for(const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab===t));
+  $('#view-dati').hidden = t!=='dati'; $('#view-piano').hidden = t!=='piano';
+  if(t==='piano') renderPlan();
+  try{ sessionStorage.setItem(KEY+'-tab', t); }catch(e){}
+  window.scrollTo({top:0});
+}
+document.querySelector('.tabs').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) showTab(b.dataset.tab); });
+
+/* ---------- export / import ---------- */
+let DL = null;
+let STANDALONE = false; try{ STANDALONE = window.top===window.self && !/claude\.(ai|com)$/.test(location.hostname); }catch(e){}
+function applyDownloads(){ const on = !!DL || STANDALONE; const pr = $('#btn-print'); if(pr) pr.hidden = !STANDALONE; if(STANDALONE){ const a0=$('#btn-dl-plan'); if(a0){ a0.hidden=true; } const b0=$('#btn-export'); if(b0) b0.hidden=false; return; } const a = $('#btn-dl-plan'), b = $('#btn-export'); if(a) a.hidden = !on; if(b) b.hidden = !on; }
+(async()=>{ try{ DL = window.claude && window.claude.use ? await window.claude.use('downloads') : null; }catch(e){ DL = null; } applyDownloads(); })();
+function toast(m){ const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(()=>t.hidden=true, 3200); }
+async function saveFile(filename, data){
+  if(!DL && STANDALONE){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data])); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); return toast('File salvato.'); }
+  if(!DL) return toast('Il salvataggio di file non è disponibile qui.');
+  try{ await DL.save({filename, data}); toast('File pronto.'); }
+  catch(e){ if(e && e.code==='declined') return; toast('Non è stato possibile salvare il file.'); }
+}
+function exportData(){ const d = {...S}; saveFile('programma-studio-dati.json', JSON.stringify(d, null, 2)); }
+$('#file-in').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{ const d = JSON.parse(await f.text()); if(!Array.isArray(d.subjects) || !Array.isArray(d.tasks)) throw 0; S = d; S.example = false; normalize(); save(); renderEditor(); renderPlan(); toast('Dati caricati.'); }
+  catch(err){ toast('Questo file non contiene dati di Programma Studio.'); }
+  e.target.value = '';
+});
+$('#btn-dl-plan').addEventListener('click', ()=>{
+  const P = buildPlan();
+  const light = `:root{--bg:#ffffff;--surface:#ffffff;--soft:#eef0f9;--fg:#1d2142;--muted:#5d6283;--line:#dde0ee;--on-tag:#1d2142;--display:"Fredoka","Trebuchet MS",sans-serif;--body:"Lexend","Segoe UI",sans-serif}
+body{margin:0;background:#fff;color:#1d2142;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{max-width:1000px;margin:0 auto;padding:20px}
+@page{size:A4;margin:10mm}@media print{.page{padding:0}.p-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}`;
+  const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Piano di studio</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@300;400;500;600&display=swap"><style>${light}${PLAN_CSS}</style></head><body><div class="page">${planHTML(P,false)}</div></body></html>`;
+  const first = P.days[0] ? n2d(P.days[0].n).slice(0,7) : 'piano';
+  saveFile(`piano-di-studio-${first}.html`, html);
+});
+$('#btn-print').addEventListener('click', ()=>{ showTab('piano'); setTimeout(()=>window.print(), 100); });
+$('#btn-copy').addEventListener('click', async ()=>{
+  const P = PLAN || buildPlan();
+  const lines = [];
+  for(const d of P.days){
+    lines.push(fmtDate(d.n).toUpperCase());
+    for(const r of d.rows){
+      if(r.type==='s') lines.push(`  ${fmt(r.a)}–${fmt(r.b)}  ${r.sub.name}: ${r.label}`);
+      else if(r.type==='p') lines.push(`  ${fmt(r.a)}–${fmt(r.b)}  pausa`);
+      else if(r.type==='c') lines.push(`  ${fmt(r.a)}–${fmt(r.b)}  ${r.c.name}`);
+      else lines.push(`  dopo ${r.c.name.toLowerCase()}: relax`);
+    }
+    if(d.due.length) lines.push('  Per domani: ' + d.due.map(t=>dueText(t).replace(/&[^;]+;/g,'')).join('; '));
+    lines.push('');
+  }
+  const txt = lines.join('\n');
+  try{ await navigator.clipboard.writeText(txt); toast('Piano copiato.'); }
+  catch(e){ toast('Copia non riuscita in questa vista.'); }
+});
+
+/* ---------- boot ---------- */
+renderEditor();
+renderPlan();
+let startTab = S.tasks.length ? 'piano' : 'dati';
+try{ startTab = sessionStorage.getItem(KEY+'-tab') || startTab; }catch(e){}
+showTab(startTab);
+</script>
+</body></html>
