@@ -602,7 +602,7 @@ function renderEditor(){
   if(!S.tasks.length) h += `<p class="none">Nessuna verifica o compito. Aggiungine uno.</p>`;
   h += `</div><div class="row-actions"><button class="btn ghost" id="add-task" data-add="tasks" ${S.subjects.length?'':'disabled'}>+ Verifica o compito</button>${S.subjects.length?'':'<span class="none">Prima aggiungi una materia.</span>'}</div></div>`;
   // 3 time
-  h += `<div class="panel"><h2><span class="step">3</span>Tempo per studiare</h2><p class="hint">Le fasce orarie libere di ogni settimana. Il piano le divide in sessioni con le pause.</p><div class="week">`;
+  h += `<div class="panel"><h2><span class="step">3</span>Tempo per studiare</h2><p class="hint">Le fasce orarie a disposizione per studiare, giorno per giorno. Il piano le divide in sessioni con le pause.</p><div class="week">`;
   for(const w of WEEK_ORDER){
     h += `<div class="wday"><b>${DAYS[w]}</b><div class="slots">`;
     (S.week[w]||[]).forEach((sl,i)=>{
