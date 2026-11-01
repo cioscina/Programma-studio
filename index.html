@@ -278,7 +278,7 @@ function daySlots(n){
   iv = subtract(iv, blocks);
   const slots=[];
   for(const [a,b] of iv){ let t=a; while(t+sess<=b){ slots.push([t,t+sess]); t+=sess+pausa; } }
-  return slots.slice(0, Math.max(1, +S.maxPerDay||4));
+  return slots;
 }
 const subjById = id => S.subjects.find(s=>s.id===id);
 function pagesText(t){
@@ -375,12 +375,15 @@ function buildPlan(){
         const after = placed.length ? Math.max(...placed) : start-1;
         const pool = elig.filter(n=>n>after);
         const src = pool.length >= left ? pool : elig;
-        target = src[Math.max(0, Math.floor((src.length/left - 1)/2))];
+        // within the stretch of days this session could go to, take the least busy one
+        const span = Math.max(1, Math.floor(src.length/left));
+        const cands = src.slice(0, span);
+        target = cands.reduce((best,n)=> used[n].length < used[best].length ? n : best, cands[Math.floor((span-1)/2)]);
       }
       used[target].push({t,n:target}); t.rem--;
     }
   }
-  for(const t of act) if(t.rem>0 && !(t.pages && t.units.length-t.rem>0)) warnings.push(`${t.sub.name}: ${t.rem===1?'manca 1 sessione':`mancano ${t.rem} sessioni`} prima del ${fmtDate(t.dl)}. Aggiungi tempo libero, alza il numero massimo di sessioni al giorno o metti più pagine per sessione.`);
+  for(const t of act) if(t.rem>0 && !(t.pages && t.units.length-t.rem>0)) warnings.push(`${t.sub.name}: ${t.rem===1?'manca 1 sessione':`mancano ${t.rem} sessioni`} prima del ${fmtDate(t.dl)}. Aggiungi qualche orario per studiare nel passo 3.`);
   // split the pages over the sessions that actually fit
   for(const t of act){
     if(!t.pages) continue;
@@ -633,7 +636,6 @@ function renderEditor(){
     <label class="f">Inizio piano<input type="date" id="set-start" data-c="set" data-f="start" value="${esc(S.start)}"></label>
     <label class="f">Sessione (minuti)<input type="number" min="15" max="120" id="set-sess" data-c="set" data-f="sess" value="${esc(S.sess)}"></label>
     <label class="f">Pausa (minuti)<input type="number" min="0" max="60" id="set-pausa" data-c="set" data-f="pausa" value="${esc(S.pausa)}"></label>
-    <label class="f">Max sessioni al giorno<input type="number" min="1" max="10" id="set-max" data-c="set" data-f="maxPerDay" value="${esc(S.maxPerDay)}"></label>
     <label class="f">Margine prima/dopo impegni (min)<input type="number" min="0" max="90" id="set-buf" data-c="set" data-f="buffer" value="${esc(S.buffer)}"></label>
   </div><div class="grid-set" style="margin-top:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
     <label class="f">Sottotitolo del piano<input type="text" id="set-sub" data-c="set" data-f="subtitle" value="${esc(S.subtitle)}"></label>
