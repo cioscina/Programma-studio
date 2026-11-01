@@ -52,6 +52,8 @@ input[type=color]{width:34px;height:34px;padding:2px;border:1px solid var(--line
 .task{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;align-items:end;background:var(--soft);border-radius:12px;padding:12px;position:relative}
 .task .del{position:absolute;top:4px;right:4px}
 .task .wide{grid-column:span 2}
+.tsum{grid-column:1 / -1;margin:0;font-size:.85rem;color:var(--fg);background:var(--surface);border-radius:8px;padding:6px 10px}
+.tsum:empty{display:none}
 .chk{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--fg);padding-bottom:6px}
 .week{display:flex;flex-direction:column;gap:6px}
 .wday{display:grid;grid-template-columns:7.5em 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
@@ -485,6 +487,22 @@ $('#plan').addEventListener('change', e=>{
 });
 
 /* ---------- editor ---------- */
+function taskSummary(t){
+  const sub = subjById(t.subj); if(!sub) return '';
+  const sess = +S.sess||40;
+  let when = '';
+  if(t.date){ const n = d2n(t.date); when = ` prima di ${fmtDate(n)}`; }
+  const rip = t.ripasso ? ', più 1 sessione di ripasso il giorno prima' : '';
+  if(t.mode==='pagine'){
+    const a = Math.round(+t.from), b = Math.round(+t.to), pps = Math.max(1, Math.round(+t.pps)||2);
+    if(!(b>=a)) return 'Controlla le pagine: "A pagina" deve essere dopo "Da pagina".';
+    const n = b-a+1, k = Math.ceil(n/pps);
+    return `→ ${n} pagine, ${pps} per volta = ${k} session${k>1?'i':'e'} da ${sess} minuti${when}${rip}.`;
+  }
+  const k = Math.max(1, Math.round(+t.sessions)||1);
+  return `→ ${k} session${k>1?'i':'e'} da ${sess} minuti${when}${rip}.`;
+}
+function refreshSums(){ for(const t of S.tasks){ const el = document.getElementById('sum-'+t.id); if(el) el.textContent = taskSummary(t); } }
 const WEEK_ORDER = [1,2,3,4,5,6,0];
 function opt(v, label, cur){ return `<option value="${esc(v)}" ${String(v)===String(cur)?'selected':''}>${esc(label)}</option>`; }
 function renderEditor(){
@@ -498,7 +516,7 @@ function renderEditor(){
   }
   h += `</div><button class="btn ghost" id="add-subj" data-add="subjects">+ Materia</button></div>`;
   // 2 tasks
-  h += `<div class="panel"><h2><span class="step">2</span>Verifiche e compiti</h2><p class="hint">Per lo studio indica le pagine e quante pagine fare per sessione. Per esercizi o compiti indica quante sessioni servono. Il ripasso aggiunge una sessione il giorno prima.</p><div class="list">`;
+  h += `<div class="panel"><h2><span class="step">2</span>Verifiche e compiti</h2><p class="hint">Una riga per ogni verifica, interrogazione o compito. Scegli <b>Pagine da studiare</b> se c'è un libro da studiare (es. da pag. 1 a 18): l'app divide le pagine in tanti pezzi, uno per ogni sessione di studio. Scegli <b>Esercizi / altro</b> per compiti come esercizi o una versione: indichi tu quante sessioni servono. Sotto ogni riga vedi il riepilogo di cosa verrà pianificato.</p><div class="list">`;
   const sortedT = [...S.tasks].sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
   for(const t of sortedT){
     const p = `data-c="tasks" data-id="${t.id}"`;
@@ -510,12 +528,12 @@ function renderEditor(){
     if(t.mode==='pagine'){
       h += `<label class="f">Da pagina<input type="number" min="0" id="t-${t.id}-from" ${p} data-f="from" value="${esc(t.from)}"></label>
       <label class="f">A pagina<input type="number" min="0" id="t-${t.id}-to" ${p} data-f="to" value="${esc(t.to)}"></label>
-      <label class="f">Pagine per sessione<input type="number" min="1" id="t-${t.id}-pps" ${p} data-f="pps" value="${esc(t.pps)}"></label>`;
+      <label class="f">Pagine ogni sessione<input title="Quante pagine studiare ogni volta che ti siedi a studiare (una sessione)"  type="number" min="1" id="t-${t.id}-pps" ${p} data-f="pps" value="${esc(t.pps)}"></label>`;
     } else {
       h += `<label class="f wide">Descrizione<input type="text" id="t-${t.id}-note" ${p} data-f="note" value="${esc(t.note)}" placeholder="es. Esercizi pag. 45"></label>
-      <label class="f">Sessioni<input type="number" min="1" id="t-${t.id}-sessions" ${p} data-f="sessions" value="${esc(t.sessions)}"></label>`;
+      <label class="f">Quante sessioni<input title="Quante volte serve sedersi a lavorarci"  type="number" min="1" id="t-${t.id}-sessions" ${p} data-f="sessions" value="${esc(t.sessions)}"></label>`;
     }
-    h += `<label class="chk"><input type="checkbox" id="t-${t.id}-ripasso" ${p} data-f="ripasso" ${t.ripasso?'checked':''}> Ripasso il giorno prima</label></div>`;
+    h += `<label class="chk"><input type="checkbox" id="t-${t.id}-ripasso" ${p} data-f="ripasso" ${t.ripasso?'checked':''}> Ripasso il giorno prima</label><p class="tsum" id="sum-${t.id}">${esc(taskSummary(t))}</p></div>`;
   }
   if(!S.tasks.length) h += `<p class="none">Nessuna verifica o compito. Aggiungine uno.</p>`;
   h += `</div><div class="row-actions"><button class="btn ghost" id="add-task" data-add="tasks" ${S.subjects.length?'':'disabled'}>+ Verifica o compito</button>${S.subjects.length?'':'<span class="none">Prima aggiungi una materia.</span>'}</div></div>`;
@@ -575,7 +593,7 @@ let planT;
 function schedulePlan(){ clearTimeout(planT); planT = setTimeout(renderPlan, 150); }
 $('#editor').addEventListener('input', e=>{
   if(!e.target.dataset.c) return;
-  setField(e.target); touched(); schedulePlan();
+  setField(e.target); touched(); schedulePlan(); refreshSums();
 });
 $('#editor').addEventListener('change', e=>{
   if(!e.target.dataset.c) return;
