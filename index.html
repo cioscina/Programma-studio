@@ -1,4 +1,4 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="Programma Studio"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#3644b8"></head><body><title>Programma Studio</title>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest"><script src="config.js"></script><meta name="apple-mobile-web-app-title" content="Programma Studio"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#3644b8"></head><body><title>Programma Studio</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@300;400;500;600&display=swap">
@@ -91,6 +91,33 @@ input[type=color]{width:34px;height:34px;padding:2px;border:1px solid var(--line
 }
 @media print{.top,.bar,#warns,#view-dati,.toast,.mvbtn,.mvsel{display:none!important}body{background:#fff}.wrap{padding:0;max-width:none}#view-piano{display:block!important}.p-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* account e salvataggio (solo con Supabase configurato) */
+.acct{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin:-6px 0 14px;font-size:.88rem;position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0}
+.acct .who{display:flex;gap:8px;align-items:center;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.sync{display:inline-flex;gap:8px;align-items:center;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.sync.ok{color:#1f7a3f;background:color-mix(in srgb,#a6e3b5 35%,var(--surface))}
+.sync.busy{color:var(--fg)}
+.sync.bad{color:var(--warn-ink);background:var(--warn);font-weight:600}
+.btn.mini{padding:2px 8px;font-size:.8rem;border-radius:7px}
+.notice{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;margin-bottom:12px;font-size:.9rem;background:var(--soft)}
+.notice.error,.notice.conflict{background:var(--warn);color:var(--warn-ink)}
+.notice.ok{background:color-mix(in srgb,#a6e3b5 35%,var(--surface))}
+.notice.local{background:color-mix(in srgb,#c9d3fb 45%,var(--surface))}
+.notice .nact{display:flex;gap:6px;align-items:center;margin-left:auto}
+#gate{display:flex;justify-content:center;padding:12px 0 40px}
+.gcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px}
+.gcard h2{font-family:var(--display);font-weight:600;font-size:1.3rem;margin:0}
+.gcard .hint{color:var(--muted);font-size:.88rem;margin:0}
+.gcard input{font-size:1rem;padding:9px 10px}
+.gcard .btn.primary{padding:10px 14px;font-size:1rem}
+.gmsg{margin:0;font-size:.88rem;padding:8px 10px;border-radius:8px;background:var(--soft)}
+.gmsg.error{background:var(--warn);color:var(--warn-ink)}
+.gmsg.ok{background:color-mix(in srgb,#a6e3b5 35%,var(--surface))}
+.gload{margin:0;color:var(--muted);text-align:center}
+.glinks{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+.gact{display:flex;gap:8px;flex-wrap:wrap}
+.linkbtn{border:0;background:none;color:var(--accent);cursor:pointer;padding:4px 0;font-size:.9rem;text-decoration:underline}
+@media print{.acct,#notices,#gate{display:none!important}}
 </style>
 <style id="plancss"></style>
 
@@ -102,6 +129,13 @@ input[type=color]{width:34px;height:34px;padding:2px;border:1px solid var(--line
       <button id="tab-piano" role="tab" aria-selected="false" data-tab="piano">Piano</button>
     </div>
   </div>
+
+  <div id="acct" class="acct" hidden>
+    <span id="sync" class="sync" role="status" aria-live="polite"></span>
+    <span class="who"><span id="acct-email"></span><button class="btn" id="btn-logout">Esci</button></span>
+  </div>
+  <div id="notices" aria-live="polite"></div>
+  <section id="gate" hidden></section>
 
   <section id="view-dati">
     <div id="exbanner" class="banner" hidden>
@@ -193,7 +227,7 @@ const d2n = s => { const [y,m,d] = s.split('-').map(Number); return Math.round(D
 const n2d = n => new Date(n*864e5).toISOString().slice(0,10);
 const dowOf = n => new Date(n*864e5).getUTCDay();
 const dateParts = n => { const d = new Date(n*864e5); return {d:d.getUTCDate(), m:d.getUTCMonth(), y:d.getUTCFullYear(), w:d.getUTCDay()}; };
-const uid = () => Math.random().toString(36).slice(2,9);
+const uid = () => { const c = window.crypto; if(c && c.randomUUID) try{ return c.randomUUID(); }catch(e){} const b = new Uint8Array(16); c.getRandomValues(b); b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128; const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join(''); return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`; };
 const todayISO = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; };
 
 /* ---------- state ---------- */
@@ -207,7 +241,7 @@ function emptyData(){
 function sample(){
   const S = ['Matematica','Scienze','Geostoria','Inglese','Arte','Latino','Fisica'];
   const cols = ['#8fb4f2','#8fe0e3','#f9c48a','#a6e3b5','#f7b6d2','#d9c6f5','#a8d4f7'];
-  const subjects = S.map((n,i)=>({id:'s'+i,name:n,color:cols[i]}));
+  const subjects = S.map((n,i)=>({id:uid(),name:n,color:cols[i]}));
   const id = n => subjects.find(s=>s.name===n).id;
   return {
     example:true,
@@ -216,28 +250,35 @@ function sample(){
     goal:'completare tutti i compiti\narrivare alle verifiche preparata/o\nstudio sostenibile con pause',
     subjects,
     tasks:[
-      {id:'t1',subj:id('Latino'),kind:'consegna',date:'2026-11-03',mode:'sessioni',sessions:1,note:'Fare la versione',from:1,to:1,pps:2,ripasso:false},
-      {id:'t2',subj:id('Matematica'),kind:'consegna',date:'2026-11-04',mode:'sessioni',sessions:2,note:'Esercizi pag. 112',from:1,to:1,pps:2,ripasso:false},
-      {id:'t3',subj:id('Fisica'),kind:'consegna',date:'2026-11-05',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
-      {id:'t4',subj:id('Inglese'),kind:'consegna',date:'2026-11-06',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
-      {id:'t5',subj:id('Arte'),kind:'verifica',date:'2026-11-09',mode:'pagine',ranges:[[1,15]],sessions:1,note:'',ripasso:false},
-      {id:'t6',subj:id('Geostoria'),kind:'interrogazione',date:'2026-11-12',mode:'pagine',ranges:[[1,12],[20,26]],sessions:1,note:'',ripasso:true},
-      {id:'t7',subj:id('Scienze'),kind:'verifica',date:'2026-11-13',mode:'pagine',ranges:[[1,18]],extras:['Appunti su Classroom'],sessions:1,note:'',ripasso:true},
+      {id:uid(),subj:id('Latino'),kind:'consegna',date:'2026-11-03',mode:'sessioni',sessions:1,note:'Fare la versione',from:1,to:1,pps:2,ripasso:false},
+      {id:uid(),subj:id('Matematica'),kind:'consegna',date:'2026-11-04',mode:'sessioni',sessions:2,note:'Esercizi pag. 112',from:1,to:1,pps:2,ripasso:false},
+      {id:uid(),subj:id('Fisica'),kind:'consegna',date:'2026-11-05',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
+      {id:uid(),subj:id('Inglese'),kind:'consegna',date:'2026-11-06',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
+      {id:uid(),subj:id('Arte'),kind:'verifica',date:'2026-11-09',mode:'pagine',ranges:[[1,15]],sessions:1,note:'',ripasso:false},
+      {id:uid(),subj:id('Geostoria'),kind:'interrogazione',date:'2026-11-12',mode:'pagine',ranges:[[1,12],[20,26]],sessions:1,note:'',ripasso:true},
+      {id:uid(),subj:id('Scienze'),kind:'verifica',date:'2026-11-13',mode:'pagine',ranges:[[1,18]],extras:['Appunti su Classroom'],sessions:1,note:'',ripasso:true},
     ],
     week:{1:[['16:00','18:30']],2:[['15:30','18:30']],3:[['15:30','18:30']],4:[['15:30','18:30']],5:[['15:30','19:45']],6:[['10:00','12:00'],['16:00','17:00']],0:[['10:00','12:00'],['16:00','17:30']]},
     commitments:[
-      {id:'c1',name:'Danza',days:[1],from:'19:00',to:'21:00',relax:true,color:'#f7b6d2'},
-      {id:'c2',name:'Danza',days:[3],from:'19:00',to:'20:00',relax:true,color:'#f7b6d2'},
-      {id:'c3',name:'Danza',days:[5],from:'17:00',to:'19:00',relax:false,color:'#f7b6d2'},
+      {id:uid(),name:'Danza',days:[1],from:'19:00',to:'21:00',relax:true,color:'#f7b6d2'},
+      {id:uid(),name:'Danza',days:[3],from:'19:00',to:'20:00',relax:true,color:'#f7b6d2'},
+      {id:uid(),name:'Danza',days:[5],from:'17:00',to:'19:00',relax:false,color:'#f7b6d2'},
     ],
     off:[], done:{}
   };
 }
+// Con Supabase configurato (config.js) i dati stanno nell'account e non si
+// leggono né si scrivono in localStorage: i dati locali restano intatti e si
+// possono importare nell'account solo su conferma.
+const CFG = window.PROGRAMMA_STUDIO_CONFIG || {};
+const CLOUD = !!(CFG.supabaseUrl && CFG.supabasePublishableKey);
 let S;
-try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) { S = null; }
+if(CLOUD) S = emptyData();
+else { try { S = JSON.parse(localStorage.getItem(KEY)); } catch(e) { S = null; } }
 if(!S || !Array.isArray(S.subjects) || S.example) S = emptyData();
 normalize();
-function normalize(){
+function normalize(D){ normalizeData(D === undefined ? S : D); }
+function normalizeData(S){
   const d = emptyData();
   for(const k of ['start','sess','pausa','maxPerDay','buffer','subtitle','goal']) if(S[k]===undefined) S[k]=d[k];
   S.subjects ||= []; S.tasks ||= []; S.commitments ||= []; S.off ||= []; S.done ||= {}; S.week ||= {}; S.pins ||= {};
@@ -254,7 +295,7 @@ function normalize(){
   for(const c of S.commitments){ if(!Array.isArray(c.days)) c.days = c.day!==undefined ? [+c.day] : []; delete c.day; }
 }
 let saveT;
-function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }, 250); }
+function save(){ if(CLOUD){ if(window.Cloud) window.Cloud.changed(); return; } clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }, 250); }
 function touched(){ if(S.example){ S.example=false; $('#exbanner').hidden = true; } save(); }
 
 /* ---------- planner ---------- */
@@ -606,6 +647,7 @@ function taskSummary(t){
 function refreshSums(){ for(const t of S.tasks){ const el = document.getElementById('sum-'+t.id); if(el) el.textContent = taskSummary(t); } }
 const WEEK_ORDER = [1,2,3,4,5,6,0];
 function opt(v, label, cur){ return `<option value="${esc(v)}" ${String(v)===String(cur)?'selected':''}>${esc(label)}</option>`; }
+let RENDERING = false;
 function renderEditor(){
   const focusId = document.activeElement && document.activeElement.id;
   let h = '';
@@ -674,7 +716,9 @@ function renderEditor(){
     <label class="f">Sottotitolo del piano<input type="text" id="set-sub" data-c="set" data-f="subtitle" value="${esc(S.subtitle)}"></label>
     <label class="f">Obiettivo (una riga per punto)<textarea id="set-goal" rows="3" data-c="set" data-f="goal">${esc(S.goal)}</textarea></label>
   </div><div class="row-actions"><button class="btn primary" id="go-plan">Vedi il piano</button><button class="btn" id="btn-export" hidden>Salva i dati in un file</button><button class="btn" id="btn-import">Carica dati da file</button></div></div>`;
-  $('#editor').innerHTML = h;
+  // sostituendo il DOM il campo attivo perde il focus e il browser può emettere
+  // un "change" con il valore vecchio: va ignorato
+  RENDERING = true; try{ $('#editor').innerHTML = h; } finally { RENDERING = false; }
   $('#exbanner').hidden = !S.example;
   applyDownloads();
   if(focusId){ const el = document.getElementById(focusId); if(el) el.focus(); }
@@ -683,7 +727,7 @@ const NUMF = new Set(['sess','pausa','maxPerDay','buffer','from','to','pps','ses
 function setField(el){
   const c = el.dataset.c, f = el.dataset.f;
   let v = el.type==='checkbox' ? el.checked : el.value;
-  if(NUMF.has(f) && v!=='') v = Number(v);
+  if(NUMF.has(f) && v!=='' && c!=='commitments') v = Number(v);
   if(c==='set') S[f] = v;
   else if(c==='week') S.week[el.dataset.day][+el.dataset.i][+f] = v;
   else if(c==='extras'){ const o = S.tasks.find(x=>x.id===el.dataset.id); if(o) o.extras[+el.dataset.i] = v; }
@@ -693,10 +737,12 @@ function setField(el){
 let planT;
 function schedulePlan(){ clearTimeout(planT); planT = setTimeout(renderPlan, 150); }
 $('#editor').addEventListener('input', e=>{
+  if(RENDERING) return;
   if(!e.target.dataset.c) return;
   setField(e.target); touched(); schedulePlan(); refreshSums();
 });
 $('#editor').addEventListener('change', e=>{
+  if(RENDERING) return;
   if(!e.target.dataset.c) return;
   setField(e.target); touched();
   if('struct' in e.target.dataset){
@@ -780,7 +826,15 @@ async function saveFile(filename, data){
 function exportData(){ const d = {...S}; saveFile('programma-studio-dati.json', JSON.stringify(d, null, 2)); }
 $('#file-in').addEventListener('change', async e=>{
   const f = e.target.files[0]; if(!f) return;
-  try{ const d = JSON.parse(await f.text()); if(!Array.isArray(d.subjects) || !Array.isArray(d.tasks)) throw 0; S = d; S.example = false; normalize(); save(); renderEditor(); renderPlan(); toast('Dati caricati.'); }
+  try{
+    let d = JSON.parse(await f.text()); if(!Array.isArray(d.subjects) || !Array.isArray(d.tasks)) throw 0;
+    if(CLOUD){
+      e.target.value = '';
+      if(!confirm('I dati del file sostituiranno quelli del tuo account (su tutti i dispositivi). Continuare?')) return;
+      normalize(d); d = window.Cloud.remapIds(d);
+    }
+    S = d; S.example = false; normalize(); save(); renderEditor(); renderPlan(); toast(CLOUD ? 'Dati caricati: salvataggio nel tuo account…' : 'Dati caricati.');
+  }
   catch(err){ toast('Questo file non contiene dati di Programma Studio.'); }
   e.target.value = '';
 });
@@ -814,10 +868,37 @@ $('#btn-copy').addEventListener('click', async ()=>{
 });
 
 /* ---------- boot ---------- */
-renderEditor();
-renderPlan();
-let startTab = S.tasks.length ? 'piano' : 'dati';
-try{ startTab = sessionStorage.getItem(KEY+'-tab') || startTab; }catch(e){}
-showTab(startTab);
+function startTab(){
+  let t = S.tasks.length ? 'piano' : 'dati';
+  try{ t = sessionStorage.getItem(KEY+'-tab') || t; }catch(e){}
+  showTab(t);
+}
+// Interfaccia usata da src/cloud.js (account e salvataggio su Supabase).
+window.App = {
+  CLOUD, KEY, emptyData, startTab, toast,
+  normalize: d => normalize(d),
+  get state(){ return S; },
+  setState(next, o = {}){
+    const a = document.activeElement, id = a && a.id;
+    let sel = null; try{ if(a && typeof a.selectionStart === 'number') sel = [a.selectionStart, a.selectionEnd]; }catch(e){}
+    S = next; normalize();
+    renderEditor(); renderPlan();
+    if(id && sel){ const el = document.getElementById(id); try{ if(el) el.setSelectionRange(sel[0], sel[1]); }catch(e){} }
+  },
+  // svuota pagina e memoria (uscita o cambio account)
+  clear(){
+    S = emptyData(); normalize(); PLAN = null;
+    clearTimeout(planT);
+    $('#editor').innerHTML = ''; $('#plan').innerHTML = ''; $('#warns').innerHTML = ''; $('#planmsg').textContent = '';
+  },
+  showGate(on){
+    $('#gate').hidden = !on; $('#acct').hidden = on;
+    document.querySelector('.tabs').hidden = on;
+    if(on){ $('#view-dati').hidden = true; $('#view-piano').hidden = true; }
+  },
+};
+if(CLOUD){ App.showGate(true); $('#gate').innerHTML = '<div class="gcard"><p class="gload" role="status">Avvio…</p></div>'; }
+else { renderEditor(); renderPlan(); startTab(); }
 </script>
+<script type="module" src="src/cloud.js"></script>
 </body></html>

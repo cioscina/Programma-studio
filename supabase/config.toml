@@ -1,0 +1,21 @@
+# Configurazione per lo sviluppo locale con la Supabase CLI (`supabase start`).
+# Il progetto online si configura dalla dashboard: vedi SUPABASE.md.
+project_id = "programma-studio"
+
+[auth]
+enabled = true
+# indirizzo dell'app in sviluppo (npm run dev)
+site_url = "http://localhost:3000/"
+additional_redirect_urls = [
+  "http://localhost:3000/",
+  "http://127.0.0.1:3000/",
+  "https://cioscina.github.io/Programma-studio/",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true

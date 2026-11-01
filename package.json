@@ -1,0 +1,18 @@
+{
+  "name": "programma-studio",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Piani di studio giorno per giorno, con account e dati su Supabase",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "config": "node scripts/write-config.mjs",
+    "test": "node --test tests/model.test.mjs",
+    "test:db": "node --test tests/db/*.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
+    "test:all": "npm test && npm run test:db && npm run test:e2e"
+  },
+  "devDependencies": {
+    "pg": "^8.13.1"
+  }
+}
