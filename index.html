@@ -338,7 +338,7 @@ function buildPlan(){
   // pages: decide how many sessions automatically from the free days before the test
   for(const t of act){
     if(!t.pages) continue;
-    const lastStudy = t.dl - 1 - (t.src.ripasso ? 1 : 0);
+    const lastStudy = t.dl - 1;
     let days = 0, slots = 0;
     for(let n=start;n<=lastStudy;n++){ if(cap[n]>0){ days++; slots += cap[n]; } }
     t.lastStudy = lastStudy;
@@ -355,7 +355,7 @@ function buildPlan(){
       for(const o of act){ const ol = o.pages ? o.lastStudy : o.dl-1; if(n<=ol) tot += weight(o); }
       share += cap[n] * weight(t) / tot;
     }
-    const k = Math.max(1, Math.min(t.pages.n, Math.floor(share) - t.extras.length));
+    const k = Math.max(1, Math.min(t.pages.n, Math.floor(share) - t.extras.length - (t.src.ripasso ? 1 : 0)));
     t.units = new Array(k + t.extras.length).fill(null);
   }
   for(const t of act) t.rem = t.units.length;
@@ -369,11 +369,11 @@ function buildPlan(){
   }
   // reserve review sessions
   for(const t of [...act].sort((a,b)=>a.dl-b.dl)){
-    t.last = t.reviewDay!==undefined ? Math.max(start, t.reviewDay-1) : t.dl-1;
+    t.last = t.dl-1;
     if(!t.src.ripasso || t.reviewDay!==undefined) continue;
     let placed = false;
     for(let n=t.dl-1;n>=start;n--){
-      if(used[n].length < cap[n]){ used[n].push({t,review:true,n}); t.last = n-1; t.reviewDay = n; placed = true; break; }
+      if(used[n].length < cap[n]){ used[n].push({t,review:true,n}); t.reviewDay = n; placed = true; break; }
     }
     if(!placed) warnings.push(`${t.sub.name}: non c'è tempo per studiare per il ripasso prima del ${fmtDate(t.dl)}.`);
   }
@@ -429,7 +429,7 @@ function buildPlan(){
   // compose days
   const days = [];
   for(let n=start;n<end;n++){
-    const items = order(used[n]);
+    const items = order(used[n]).sort((x,y)=>(x.review?1:0)-(y.review?1:0));
     const slots = daySlots(n);
     while(slots.length < items.length){
       const last = slots[slots.length-1];
