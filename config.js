@@ -14,7 +14,7 @@
 // Queste chiavi sono pubbliche per definizione (la sicurezza è data dalle
 // policy RLS nel database). NON inserire mai la chiave "secret"/"service_role".
 window.PROGRAMMA_STUDIO_CONFIG = {
-  supabaseUrl: "",
-  supabasePublishableKey: "",
+  supabaseUrl: "https://djdkhkxraysjnlhcrbpq.supabase.co",
+  supabasePublishableKey: "sb_publishable_czWj6QLmoQG3fZIiTlYE-Q_qQyjLSyF",
   siteUrl: ""
 };
