@@ -341,7 +341,8 @@ function buildPlan(){
     const lastStudy = t.dl - 1 - (t.src.ripasso ? 1 : 0);
     let days = 0, slots = 0;
     for(let n=start;n<=lastStudy;n++){ if(cap[n]>0){ days++; slots += cap[n]; } }
-    const k = Math.min(days || 1, Math.max(1, Math.round(t.pages.n/3)));
+    // about 4 pages per session at most, limited by the study slots available before the test
+    const k = Math.max(1, Math.min(slots, Math.ceil(t.pages.n/4)));
     t.units = new Array(k + t.extras.length).fill(null);
   }
   for(const t of act) t.rem = t.units.length;
