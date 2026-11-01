@@ -52,6 +52,11 @@ input[type=color]{width:34px;height:34px;padding:2px;border:1px solid var(--line
 .task{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;align-items:end;background:var(--soft);border-radius:12px;padding:12px;position:relative}
 .task .del{position:absolute;top:4px;right:4px}
 .task .wide{grid-column:span 2}
+.ranges{grid-column:span 2;display:flex;flex-direction:column;gap:6px}
+.ranges > span:first-child{font-size:.78rem;color:var(--muted);font-weight:500}
+.rg{display:flex;align-items:center;gap:6px;color:var(--fg);font-size:.85rem}
+.rg input{width:5.5em}
+.addrg{align-self:flex-start;padding:3px 10px;font-size:.8rem}
 .tsum{grid-column:1 / -1;margin:0;font-size:.85rem;color:var(--fg);background:var(--surface);border-radius:8px;padding:6px 10px}
 .tsum:empty{display:none}
 .chk{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--fg);padding-bottom:6px}
@@ -80,6 +85,7 @@ input[type=color]{width:34px;height:34px;padding:2px;border:1px solid var(--line
   .commit > .f:nth-child(1), .commit > .f:nth-child(2){grid-column:1 / -1}
   .commit .chk{grid-column:span 1}
   .task .wide{grid-column:auto}
+  .ranges{grid-column:1 / -1}
   .wday{grid-template-columns:1fr}
 }
 @media print{.top,.bar,#warns,#view-dati,.toast,.mvbtn,.mvsel{display:none!important}body{background:#fff}.wrap{padding:0;max-width:none}#view-piano{display:block!important}.p-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
@@ -213,9 +219,9 @@ function sample(){
       {id:'t2',subj:id('Matematica'),kind:'consegna',date:'2026-11-04',mode:'sessioni',sessions:2,note:'Esercizi pag. 112',from:1,to:1,pps:2,ripasso:false},
       {id:'t3',subj:id('Fisica'),kind:'consegna',date:'2026-11-05',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
       {id:'t4',subj:id('Inglese'),kind:'consegna',date:'2026-11-06',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
-      {id:'t5',subj:id('Arte'),kind:'verifica',date:'2026-11-09',mode:'pagine',pagine:'1-15',sessions:1,note:'',ripasso:false},
-      {id:'t6',subj:id('Geostoria'),kind:'interrogazione',date:'2026-11-12',mode:'pagine',pagine:'1-12, 20-26',sessions:1,note:'',ripasso:true},
-      {id:'t7',subj:id('Scienze'),kind:'verifica',date:'2026-11-13',mode:'pagine',pagine:'1-18',sessions:1,note:'',ripasso:true},
+      {id:'t5',subj:id('Arte'),kind:'verifica',date:'2026-11-09',mode:'pagine',ranges:[[1,15]],sessions:1,note:'',ripasso:false},
+      {id:'t6',subj:id('Geostoria'),kind:'interrogazione',date:'2026-11-12',mode:'pagine',ranges:[[1,12],[20,26]],sessions:1,note:'',ripasso:true},
+      {id:'t7',subj:id('Scienze'),kind:'verifica',date:'2026-11-13',mode:'pagine',ranges:[[1,18]],sessions:1,note:'',ripasso:true},
     ],
     week:{1:[['16:00','18:30']],2:[['15:30','18:30']],3:[['15:30','18:30']],4:[['15:30','18:30']],5:[['15:30','19:45']],6:[['10:00','12:00'],['16:00','17:00']],0:[['10:00','12:00'],['16:00','17:30']]},
     commitments:[
@@ -234,6 +240,14 @@ function normalize(){
   const d = emptyData();
   for(const k of ['start','sess','pausa','maxPerDay','buffer','subtitle','goal']) if(S[k]===undefined) S[k]=d[k];
   S.subjects ||= []; S.tasks ||= []; S.commitments ||= []; S.off ||= []; S.done ||= {}; S.week ||= {}; S.pins ||= {};
+  for(const t of S.tasks){
+    if(Array.isArray(t.ranges)) continue;
+    if(typeof t.pagine==='string' && t.pagine.trim()){
+      t.ranges = t.pagine.split(/[,;]+/).map(x=>x.trim().match(/^(\d+)\s*(?:[-–—]|a)?\s*(\d+)?$/)).filter(Boolean).map(m=>[+m[1], m[2]!==undefined?+m[2]:+m[1]]);
+    } else if(t.from!==undefined && t.to!==undefined && t.mode==='pagine') t.ranges = [[t.from, t.to]];
+    if(!t.ranges || !t.ranges.length) t.ranges = [['','']];
+    delete t.pagine;
+  }
   for(let i=0;i<7;i++) S.week[i] ||= [];
   for(const c of S.commitments){ if(!Array.isArray(c.days)) c.days = c.day!==undefined ? [+c.day] : []; delete c.day; }
 }
@@ -267,7 +281,9 @@ function daySlots(n){
   return slots.slice(0, Math.max(1, +S.maxPerDay||4));
 }
 const subjById = id => S.subjects.find(s=>s.id===id);
-function pagesText(t){ return (t.pagine!==undefined && t.pagine!==null) ? String(t.pagine) : ((t.from!==undefined && t.to!==undefined) ? `${t.from}-${t.to}` : ''); }
+function pagesText(t){
+  return (t.ranges||[]).filter(r=>r[0]!=='' || r[1]!=='').map(r=>{ const a = r[0]==='' ? r[1] : r[0], b = r[1]==='' ? r[0] : r[1]; return `${a}-${b}`; }).join(', ');
+}
 function parsePages(txt){
   const list = [], seen = new Set(); let bad = false;
   for(const part of String(txt||'').split(/[,;]+|\s+e\s+/)){
@@ -299,7 +315,7 @@ function buildPlan(){
     if(dl <= start){ warnings.push(`${sub.name}: la scadenza del ${fmtDate(dl)} è prima dell'inizio del piano, quindi non è stata pianificata.`); T.skip=true; tasks.push(T); continue; }
     if(t.mode==='pagine'){
       const {list, bad} = parsePages(pagesText(t));
-      if(bad) warnings.push(`${sub.name}: alcune pagine non sono scritte bene ("${pagesText(t)}"). Scrivile così: 1-20, 35-40.`);
+      if(bad) warnings.push(`${sub.name}: alcune pagine non sono scritte bene ("${pagesText(t)}"). Controlla che "a pag." non sia prima di "da pag.".`);
       if(!list.length){ if(!bad) warnings.push(`${sub.name}: scrivi le pagine da studiare.`); T.skip=true; tasks.push(T); continue; }
       T.pages = {list, n:list.length};
     } else {
@@ -540,7 +556,7 @@ function taskSummary(t){
   const rip = t.ripasso ? ', più 1 sessione di ripasso il giorno prima' : '';
   if(t.mode==='pagine'){
     const {list, bad} = parsePages(pagesText(t));
-    if(!list.length) return bad ? 'Scrivi le pagine così: 1-20, 35-40' : '';
+    if(!list.length) return bad ? 'Controlla le pagine: "a pag." non può essere prima di "da pag.".' : '';
     const n = list.length;
     const T = PLAN && PLAN.tasks.find(x=>x.src.id===t.id);
     const warnBad = bad ? ' Attenzione: una parte delle pagine non è scritta bene.' : '';
@@ -566,7 +582,7 @@ function renderEditor(){
   }
   h += `</div><button class="btn ghost" id="add-subj" data-add="subjects">+ Materia</button></div>`;
   // 2 tasks
-  h += `<div class="panel"><h2><span class="step">2</span>Verifiche e compiti</h2><p class="hint">Una riga per ogni verifica, interrogazione o compito. Scegli <b>Pagine da studiare</b> se c'è un libro da studiare (es. da pag. 1 a 18): se le pagine non sono di seguito separale con la virgola (es. 1-20, 35-40). L'app calcola da sola quante sessioni servono e quante pagine fare ogni volta, in base ai giorni liberi prima della verifica. Scegli <b>Esercizi / altro</b> per compiti come esercizi o una versione: indichi tu quante sessioni servono. Sotto ogni riga vedi il riepilogo di cosa verrà pianificato.</p><div class="list">`;
+  h += `<div class="panel"><h2><span class="step">2</span>Verifiche e compiti</h2><p class="hint">Una riga per ogni verifica, interrogazione o compito. Scegli <b>Pagine da studiare</b> se c'è un libro da studiare (es. da pag. 1 a 18): se le pagine non sono tutte di seguito, premi "+ altre pagine" per aggiungere un altro gruppo (es. da 1 a 20 e da 35 a 40). L'app calcola da sola quante sessioni servono e quante pagine fare ogni volta, in base ai giorni liberi prima della verifica. Scegli <b>Esercizi / altro</b> per compiti come esercizi o una versione: indichi tu quante sessioni servono. Sotto ogni riga vedi il riepilogo di cosa verrà pianificato.</p><div class="list">`;
   const sortedT = [...S.tasks].sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
   for(const t of sortedT){
     const p = `data-c="tasks" data-id="${t.id}"`;
@@ -576,7 +592,7 @@ function renderEditor(){
       <label class="f">Data<input type="date" id="t-${t.id}-date" ${p} data-f="date" value="${esc(t.date)}"></label>
       <label class="f">Cosa fare<select id="t-${t.id}-mode" ${p} data-f="mode" data-struct>${opt('pagine','Pagine da studiare',t.mode)}${opt('sessioni','Esercizi / altro',t.mode)}</select></label>`;
     if(t.mode==='pagine'){
-      h += `<label class="f wide">Pagine da studiare<input type="text" inputmode="numeric" id="t-${t.id}-pagine" ${p} data-f="pagine" value="${esc(pagesText(t))}" placeholder="es. 1-20, 35-40"></label>`;
+      h += `<div class="f ranges"><span>Pagine da studiare</span>${t.ranges.map((r,i)=>`<div class="rg"><span>da pag.</span><input type="number" inputmode="numeric" min="0" id="t-${t.id}-r${i}-0" data-c="ranges" data-id="${t.id}" data-i="${i}" data-f="0" value="${esc(r[0])}" aria-label="Da pagina"><span>a pag.</span><input type="number" inputmode="numeric" min="0" id="t-${t.id}-r${i}-1" data-c="ranges" data-id="${t.id}" data-i="${i}" data-f="1" value="${esc(r[1])}" aria-label="A pagina">${t.ranges.length>1?`<button class="x" data-del="range" data-id="${t.id}" data-i="${i}" title="Togli queste pagine">×</button>`:''}</div>`).join('')}<button class="btn ghost addrg" id="add-r-${t.id}" data-add="range" data-id="${t.id}">+ altre pagine</button></div>`;
     } else {
       h += `<label class="f wide">Descrizione<input type="text" id="t-${t.id}-note" ${p} data-f="note" value="${esc(t.note)}" placeholder="es. Esercizi pag. 45"></label>
       <label class="f">Quante sessioni<input title="Quante volte serve sedersi a lavorarci"  type="number" min="1" id="t-${t.id}-sessions" ${p} data-f="sessions" value="${esc(t.sessions)}"></label>`;
@@ -635,6 +651,7 @@ function setField(el){
   if(NUMF.has(f) && v!=='') v = Number(v);
   if(c==='set') S[f] = v;
   else if(c==='week') S.week[el.dataset.day][+el.dataset.i][+f] = v;
+  else if(c==='ranges'){ const o = S.tasks.find(x=>x.id===el.dataset.id); if(o) o.ranges[+el.dataset.i][+f] = v; }
   else { const o = S[c].find(x=>x.id===el.dataset.id); if(o) o[f] = v; }
 }
 let planT;
@@ -669,7 +686,8 @@ $('#editor').addEventListener('click', e=>{
   if(b.dataset.add){
     const k = b.dataset.add;
     if(k==='subjects'){ const used = S.subjects.map(s=>s.color); S.subjects.push({id:uid(),name:'',color:PALETTE.find(c=>!used.includes(c))||PALETTE[S.subjects.length%PALETTE.length]}); }
-    if(k==='tasks'){ const d = new Date(Date.now()+7*864e5); S.tasks.push({id:uid(),subj:S.subjects[0].id,kind:'verifica',date:n2d(Math.max(d2n(S.start||todayISO())+7, 0)),mode:'pagine',pagine:'',sessions:1,note:'',ripasso:true}); }
+    if(k==='tasks'){ const d = new Date(Date.now()+7*864e5); S.tasks.push({id:uid(),subj:S.subjects[0].id,kind:'verifica',date:n2d(Math.max(d2n(S.start||todayISO())+7, 0)),mode:'pagine',ranges:[['','']],sessions:1,note:'',ripasso:true}); }
+    if(k==='range'){ const o = S.tasks.find(x=>x.id===b.dataset.id); if(o){ o.ranges.push(['','']); touched(); renderEditor(); renderPlan(); const el = document.getElementById(`t-${o.id}-r${o.ranges.length-1}-0`); if(el) el.focus(); } return; }
     if(k==='week'){ const w = b.dataset.day; S.week[w].push(S.week[w].length?['16:00','17:00']:['15:30','17:30']); }
     if(k==='commitments') S.commitments.push({id:uid(),name:'',days:[],from:'17:00',to:'18:00',relax:false,color:'#f7b6d2'});
     if(k==='off'){ const v = $('#off-in').value; if(!v) return toast('Scegli prima una data.'); if(!S.off.includes(v)) S.off.push(v); }
@@ -688,6 +706,7 @@ $('#editor').addEventListener('click', e=>{
     if(k==='tasks'){ S.tasks = S.tasks.filter(t=>t.id!==b.dataset.id); delete S.pins[b.dataset.id]; delete S.pins[b.dataset.id+'#r']; }
     if(k==='commitments') S.commitments = S.commitments.filter(t=>t.id!==b.dataset.id);
     if(k==='week') S.week[b.dataset.day].splice(+b.dataset.i,1);
+    if(k==='range'){ const o = S.tasks.find(x=>x.id===b.dataset.id); if(o) o.ranges.splice(+b.dataset.i,1); }
     if(k==='off') S.off = S.off.filter(o=>o!==b.dataset.v);
     touched(); renderEditor(); renderPlan();
   }
