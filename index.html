@@ -341,8 +341,21 @@ function buildPlan(){
     const lastStudy = t.dl - 1 - (t.src.ripasso ? 1 : 0);
     let days = 0, slots = 0;
     for(let n=start;n<=lastStudy;n++){ if(cap[n]>0){ days++; slots += cap[n]; } }
-    // about 4 pages per session at most, limited by the study slots available before the test
-    const k = Math.max(1, Math.min(slots, Math.ceil(t.pages.n/4)));
+    t.lastStudy = lastStudy;
+  }
+  // use all the study time: each day's sessions are shared among the tests still open that day,
+  // in proportion to how much each one has to do
+  const weight = o => o.pages ? o.pages.n + 4*o.extras.length : 4*o.units.length;
+  for(const t of act){
+    if(!t.pages) continue;
+    let share = 0;
+    for(let n=start;n<=t.lastStudy;n++){
+      if(!cap[n]) continue;
+      let tot = 0;
+      for(const o of act){ const ol = o.pages ? o.lastStudy : o.dl-1; if(n<=ol) tot += weight(o); }
+      share += cap[n] * weight(t) / tot;
+    }
+    const k = Math.max(1, Math.min(t.pages.n, Math.floor(share) - t.extras.length));
     t.units = new Array(k + t.extras.length).fill(null);
   }
   for(const t of act) t.rem = t.units.length;
