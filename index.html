@@ -1,4 +1,4 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Programma Studio</title>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-title" content="Programma Studio"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#3644b8"></head><body><title>Programma Studio</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@300;400;500;600&display=swap">
@@ -56,6 +56,7 @@ input[type=color]{width:34px;height:34px;padding:2px;border:1px solid var(--line
 .ranges > span:first-child{font-size:.78rem;color:var(--muted);font-weight:500}
 .rg{display:flex;align-items:center;gap:6px;color:var(--fg);font-size:.85rem}
 .rg input{width:5.5em}
+.rg input.exin{width:auto;flex:1;min-width:0}
 .addrg{align-self:flex-start;padding:3px 10px;font-size:.8rem}
 .tsum{grid-column:1 / -1;margin:0;font-size:.85rem;color:var(--fg);background:var(--surface);border-radius:8px;padding:6px 10px}
 .tsum:empty{display:none}
@@ -221,7 +222,7 @@ function sample(){
       {id:'t4',subj:id('Inglese'),kind:'consegna',date:'2026-11-06',mode:'sessioni',sessions:2,note:'Esercizi',from:1,to:1,pps:2,ripasso:false},
       {id:'t5',subj:id('Arte'),kind:'verifica',date:'2026-11-09',mode:'pagine',ranges:[[1,15]],sessions:1,note:'',ripasso:false},
       {id:'t6',subj:id('Geostoria'),kind:'interrogazione',date:'2026-11-12',mode:'pagine',ranges:[[1,12],[20,26]],sessions:1,note:'',ripasso:true},
-      {id:'t7',subj:id('Scienze'),kind:'verifica',date:'2026-11-13',mode:'pagine',ranges:[[1,18]],sessions:1,note:'',ripasso:true},
+      {id:'t7',subj:id('Scienze'),kind:'verifica',date:'2026-11-13',mode:'pagine',ranges:[[1,18]],extras:['Appunti su Classroom'],sessions:1,note:'',ripasso:true},
     ],
     week:{1:[['16:00','18:30']],2:[['15:30','18:30']],3:[['15:30','18:30']],4:[['15:30','18:30']],5:[['15:30','19:45']],6:[['10:00','12:00'],['16:00','17:00']],0:[['10:00','12:00'],['16:00','17:30']]},
     commitments:[
@@ -241,6 +242,7 @@ function normalize(){
   for(const k of ['start','sess','pausa','maxPerDay','buffer','subtitle','goal']) if(S[k]===undefined) S[k]=d[k];
   S.subjects ||= []; S.tasks ||= []; S.commitments ||= []; S.off ||= []; S.done ||= {}; S.week ||= {}; S.pins ||= {};
   for(const t of S.tasks){
+    if(!Array.isArray(t.extras)) t.extras = [];
     if(Array.isArray(t.ranges)) continue;
     if(typeof t.pagine==='string' && t.pagine.trim()){
       t.ranges = t.pagine.split(/[,;]+/).map(x=>x.trim().match(/^(\d+)\s*(?:[-–—]|a)?\s*(\d+)?$/)).filter(Boolean).map(m=>[+m[1], m[2]!==undefined?+m[2]:+m[1]]);
@@ -316,8 +318,11 @@ function buildPlan(){
     if(t.mode==='pagine'){
       const {list, bad} = parsePages(pagesText(t));
       if(bad) warnings.push(`${sub.name}: alcune pagine non sono scritte bene ("${pagesText(t)}"). Controlla che "a pag." non sia prima di "da pag.".`);
-      if(!list.length){ if(!bad) warnings.push(`${sub.name}: scrivi le pagine da studiare.`); T.skip=true; tasks.push(T); continue; }
-      T.pages = {list, n:list.length};
+      const extras = (t.extras||[]).map(x=>String(x).trim()).filter(Boolean);
+      T.extras = extras;
+      if(!list.length && !extras.length){ if(!bad) warnings.push(`${sub.name}: scrivi le pagine o il materiale da studiare.`); T.skip=true; tasks.push(T); continue; }
+      if(list.length) T.pages = {list, n:list.length};
+      else for(const x of extras) T.units.push(x);
     } else {
       const k = Math.max(1, Math.round(+t.sessions)||1);
       const note = (t.note||'').trim() || 'Studio';
@@ -337,7 +342,7 @@ function buildPlan(){
     let days = 0, slots = 0;
     for(let n=start;n<=lastStudy;n++){ if(cap[n]>0){ days++; slots += cap[n]; } }
     const k = Math.min(days || 1, Math.max(1, Math.round(t.pages.n/3)));
-    t.units = new Array(k).fill(null);
+    t.units = new Array(k + t.extras.length).fill(null);
   }
   for(const t of act) t.rem = t.units.length;
   // sessions moved by hand go first
@@ -387,9 +392,13 @@ function buildPlan(){
   // split the pages over the sessions that actually fit
   for(const t of act){
     if(!t.pages) continue;
-    const m = t.units.length - t.rem;
-    t.placed = m; t.units = [];
+    const total = t.units.length - t.rem, ex = t.extras.length;
+    const m = Math.max(total>0 ? 1 : 0, total - ex);
+    const exPlaced = total - m;
+    t.placed = m; t.exPlaced = exPlaced; t.units = [];
+    if(exPlaced < ex) warnings.push(`${t.sub.name}: non c'è tempo per tutto il materiale extra (${ex-exPlaced} su ${ex} restano fuori). Aggiungi qualche orario nel passo 3.`);
     if(m<1) continue;
+    const exUnits = t.extras.slice(0, exPlaced);
     const {list, n} = t.pages, base = Math.floor(n/m), extra = n%m, single = rangeLabel(list).indexOf(',')<0, last = list[list.length-1];
     let p = 0;
     for(let i=0;i<m;i++){
@@ -399,6 +408,7 @@ function buildPlan(){
       const tail = p>=n ? ' (fine)' : (single ? ` (su ${last})` : '');
       t.units.push(`pag. ${rangeLabel(chunk)}${tail}`);
     }
+    t.units.push(...exUnits);
     t.pps = n/m;
     if(t.pps > 10) warnings.push(`${t.sub.name}: per finire in tempo servono circa ${Math.round(t.pps)} pagine a sessione. Se sono troppe, aggiungi tempo libero prima del ${fmtDate(t.dl)}.`);
   }
@@ -559,6 +569,9 @@ function taskSummary(t){
   const rip = t.ripasso ? ', più 1 sessione di ripasso il giorno prima' : '';
   if(t.mode==='pagine'){
     const {list, bad} = parsePages(pagesText(t));
+    const exN = (t.extras||[]).filter(x=>String(x).trim()).length;
+    const exTxt = exN ? `, più ${exN} session${exN>1?'i':'e'} per l'altro materiale` : '';
+    if(!list.length && exN) return `→ ${exN} session${exN>1?'i':'e'} da ${sess} minuti per l'altro materiale${when}${rip}.`;
     if(!list.length) return bad ? 'Controlla le pagine: "a pag." non può essere prima di "da pag.".' : '';
     const n = list.length;
     const T = PLAN && PLAN.tasks.find(x=>x.src.id===t.id);
@@ -566,7 +579,7 @@ function taskSummary(t){
     if(!T || !T.placed) return `→ ${n} pagine${when}. Aggiungi qualche orario libero nel passo 3 per vedere come vengono divise.${warnBad}`;
     const k = T.placed, per = n/k;
     const perTxt = per<1.5 ? 'circa 1 pagina' : `circa ${Math.round(per)} pagine`;
-    return `→ ${n} pagine divise in ${k} session${k>1?'i':'e'} da ${sess} minuti (${perTxt} ogni volta)${when}${rip}.${warnBad}`;
+    return `→ ${n} pagine divise in ${k} session${k>1?'i':'e'} da ${sess} minuti (${perTxt} ogni volta)${exTxt}${when}${rip}.${warnBad}`;
   }
   const k = Math.max(1, Math.round(+t.sessions)||1);
   return `→ ${k} session${k>1?'i':'e'} da ${sess} minuti${when}${rip}.`;
@@ -585,7 +598,7 @@ function renderEditor(){
   }
   h += `</div><button class="btn ghost" id="add-subj" data-add="subjects">+ Materia</button></div>`;
   // 2 tasks
-  h += `<div class="panel"><h2><span class="step">2</span>Verifiche e compiti</h2><p class="hint">Una riga per ogni verifica, interrogazione o compito. Scegli <b>Pagine da studiare</b> se c'è un libro da studiare (es. da pag. 1 a 18): se le pagine non sono tutte di seguito, premi "+ altre pagine" per aggiungere un altro gruppo (es. da 1 a 20 e da 35 a 40). L'app calcola da sola quante sessioni servono e quante pagine fare ogni volta, in base ai giorni liberi prima della verifica. Scegli <b>Esercizi / altro</b> per compiti come esercizi o una versione: indichi tu quante sessioni servono. Sotto ogni riga vedi il riepilogo di cosa verrà pianificato.</p><div class="list">`;
+  h += `<div class="panel"><h2><span class="step">2</span>Verifiche e compiti</h2><p class="hint">Una riga per ogni verifica, interrogazione o compito. Scegli <b>Pagine da studiare</b> se c'è un libro da studiare (es. da pag. 1 a 18): se le pagine non sono tutte di seguito, premi "+ altre pagine" per aggiungere un altro gruppo (es. da 1 a 20 e da 35 a 40). Con "+ altro materiale" aggiungi cose da studiare che non sono pagine del libro (es. appunti su Classroom): ogni riga diventa una sessione. L'app calcola da sola quante sessioni servono e quante pagine fare ogni volta, in base ai giorni liberi prima della verifica. Scegli <b>Esercizi / altro</b> per compiti come esercizi o una versione: indichi tu quante sessioni servono. Sotto ogni riga vedi il riepilogo di cosa verrà pianificato.</p><div class="list">`;
   const sortedT = [...S.tasks].sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
   for(const t of sortedT){
     const p = `data-c="tasks" data-id="${t.id}"`;
@@ -595,7 +608,8 @@ function renderEditor(){
       <label class="f">Data<input type="date" id="t-${t.id}-date" ${p} data-f="date" value="${esc(t.date)}"></label>
       <label class="f">Cosa fare<select id="t-${t.id}-mode" ${p} data-f="mode" data-struct>${opt('pagine','Pagine da studiare',t.mode)}${opt('sessioni','Esercizi / altro',t.mode)}</select></label>`;
     if(t.mode==='pagine'){
-      h += `<div class="f ranges"><span>Pagine da studiare</span>${t.ranges.map((r,i)=>`<div class="rg"><span>da pag.</span><input type="number" inputmode="numeric" min="0" id="t-${t.id}-r${i}-0" data-c="ranges" data-id="${t.id}" data-i="${i}" data-f="0" value="${esc(r[0])}" aria-label="Da pagina"><span>a pag.</span><input type="number" inputmode="numeric" min="0" id="t-${t.id}-r${i}-1" data-c="ranges" data-id="${t.id}" data-i="${i}" data-f="1" value="${esc(r[1])}" aria-label="A pagina">${t.ranges.length>1?`<button class="x" data-del="range" data-id="${t.id}" data-i="${i}" title="Togli queste pagine">×</button>`:''}</div>`).join('')}<button class="btn ghost addrg" id="add-r-${t.id}" data-add="range" data-id="${t.id}">+ altre pagine</button></div>`;
+      h += `<div class="f ranges"><span>Pagine da studiare</span>${t.ranges.map((r,i)=>`<div class="rg"><span>da pag.</span><input type="number" inputmode="numeric" min="0" id="t-${t.id}-r${i}-0" data-c="ranges" data-id="${t.id}" data-i="${i}" data-f="0" value="${esc(r[0])}" aria-label="Da pagina"><span>a pag.</span><input type="number" inputmode="numeric" min="0" id="t-${t.id}-r${i}-1" data-c="ranges" data-id="${t.id}" data-i="${i}" data-f="1" value="${esc(r[1])}" aria-label="A pagina">${t.ranges.length>1?`<button class="x" data-del="range" data-id="${t.id}" data-i="${i}" title="Togli queste pagine">×</button>`:''}</div>`).join('')}<button class="btn ghost addrg" id="add-r-${t.id}" data-add="range" data-id="${t.id}">+ altre pagine</button></div>
+      <div class="f ranges"><span>Altro materiale (1 sessione per riga)</span>${(t.extras||[]).map((x,i)=>`<div class="rg"><input type="text" class="exin" id="t-${t.id}-x${i}" data-c="extras" data-id="${t.id}" data-i="${i}" value="${esc(x)}" placeholder="es. Appunti su Classroom" aria-label="Altro materiale"><button class="x" data-del="extra" data-id="${t.id}" data-i="${i}" title="Togli">×</button></div>`).join('')}<button class="btn ghost addrg" id="add-x-${t.id}" data-add="extra" data-id="${t.id}">+ altro materiale</button></div>`;
     } else {
       h += `<label class="f wide">Descrizione<input type="text" id="t-${t.id}-note" ${p} data-f="note" value="${esc(t.note)}" placeholder="es. Esercizi pag. 45"></label>
       <label class="f">Quante sessioni<input title="Quante volte serve sedersi a lavorarci"  type="number" min="1" id="t-${t.id}-sessions" ${p} data-f="sessions" value="${esc(t.sessions)}"></label>`;
@@ -653,6 +667,7 @@ function setField(el){
   if(NUMF.has(f) && v!=='') v = Number(v);
   if(c==='set') S[f] = v;
   else if(c==='week') S.week[el.dataset.day][+el.dataset.i][+f] = v;
+  else if(c==='extras'){ const o = S.tasks.find(x=>x.id===el.dataset.id); if(o) o.extras[+el.dataset.i] = v; }
   else if(c==='ranges'){ const o = S.tasks.find(x=>x.id===el.dataset.id); if(o) o.ranges[+el.dataset.i][+f] = v; }
   else { const o = S[c].find(x=>x.id===el.dataset.id); if(o) o[f] = v; }
 }
@@ -689,6 +704,7 @@ $('#editor').addEventListener('click', e=>{
     const k = b.dataset.add;
     if(k==='subjects'){ const used = S.subjects.map(s=>s.color); S.subjects.push({id:uid(),name:'',color:PALETTE.find(c=>!used.includes(c))||PALETTE[S.subjects.length%PALETTE.length]}); }
     if(k==='tasks'){ const d = new Date(Date.now()+7*864e5); S.tasks.push({id:uid(),subj:S.subjects[0].id,kind:'verifica',date:n2d(Math.max(d2n(S.start||todayISO())+7, 0)),mode:'pagine',ranges:[['','']],sessions:1,note:'',ripasso:true}); }
+    if(k==='extra'){ const o = S.tasks.find(x=>x.id===b.dataset.id); if(o){ (o.extras ||= []).push(''); touched(); renderEditor(); renderPlan(); const el = document.getElementById(`t-${o.id}-x${o.extras.length-1}`); if(el) el.focus(); } return; }
     if(k==='range'){ const o = S.tasks.find(x=>x.id===b.dataset.id); if(o){ o.ranges.push(['','']); touched(); renderEditor(); renderPlan(); const el = document.getElementById(`t-${o.id}-r${o.ranges.length-1}-0`); if(el) el.focus(); } return; }
     if(k==='week'){ const w = b.dataset.day; S.week[w].push(S.week[w].length?['16:00','17:00']:['15:30','17:30']); }
     if(k==='commitments') S.commitments.push({id:uid(),name:'',days:[],from:'17:00',to:'18:00',relax:false,color:'#f7b6d2'});
@@ -709,6 +725,7 @@ $('#editor').addEventListener('click', e=>{
     if(k==='commitments') S.commitments = S.commitments.filter(t=>t.id!==b.dataset.id);
     if(k==='week') S.week[b.dataset.day].splice(+b.dataset.i,1);
     if(k==='range'){ const o = S.tasks.find(x=>x.id===b.dataset.id); if(o) o.ranges.splice(+b.dataset.i,1); }
+    if(k==='extra'){ const o = S.tasks.find(x=>x.id===b.dataset.id); if(o) o.extras.splice(+b.dataset.i,1); }
     if(k==='off') S.off = S.off.filter(o=>o!==b.dataset.v);
     touched(); renderEditor(); renderPlan();
   }
